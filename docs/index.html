@@ -111,8 +111,17 @@
     <ul>
       <li><strong>What shipped:</strong> PRD v1 and Product Page live. Repo scaffolded with AGENTS.md rules (no real data, no secrets).</li>
       <li><strong>Prior work:</strong> pre-design summary of the Apps Script version (October 2026).</li>
+      <li><strong>What broke:</strong> nothing major.</li>
       <li><strong>Cost:</strong> 3 hrs, ~2.0M tokens (mostly cached).</li>
       <li><strong>Next:</strong> smallest local prototype (search + detail view with sample data).</li>
+    </ul>
+
+    <h3>November 9, 2026</h3>
+    <ul>
+      <li><strong>What shipped:</strong> local prototype on Node + Express with made-up sample data (8 firms, 12 contacts, 10 outreach rows). Search a firm or contact, see owner, approval, last touch, sponsor status and tier, view full outreach history, and log a new outreach from the detail panel. Screenshots added above.</li>
+      <li><strong>What broke:</strong> an old server process kept port 3000 busy after a restart; malformed requests returned an error page that exposed local file paths (fixed with a short JSON error); a sideways scrollbar in the results list (fixed); the first push was rejected until I pulled a README edit made on GitHub.</li>
+      <li><strong>Cost:</strong> 1 hr, ~6M tokens (estimate, mostly cached). No API or hosting cost yet.</li>
+      <li><strong>Next:</strong> Build 2: read the real Google Sheet through a service account (the riskiest part), add PostHog events, and publish PRD v2 with risks, architecture and budget.</li>
     </ul>
 
     <footer>
