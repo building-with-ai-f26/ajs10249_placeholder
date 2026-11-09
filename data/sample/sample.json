@@ -1,0 +1,38 @@
+{
+  "Organizations": [
+    { "Org_Name": "Harborline Capital", "Sponsor_Status": "Active Sponsor", "Current_Tier": "Gold", "Outreach_Stage": "Renewal" },
+    { "Org_Name": "Meridian Square Partners", "Sponsor_Status": "Prospect", "Current_Tier": "", "Outreach_Stage": "Initial Contact" },
+    { "Org_Name": "Copperleaf Realty Advisors", "Sponsor_Status": "Active Sponsor", "Current_Tier": "Silver", "Outreach_Stage": "Event Planning" },
+    { "Org_Name": "Northgate Development Co.", "Sponsor_Status": "Past Sponsor", "Current_Tier": "Bronze", "Outreach_Stage": "Re-engage" },
+    { "Org_Name": "Bluestone Lending Group", "Sponsor_Status": "Prospect", "Current_Tier": "", "Outreach_Stage": "Not Started" },
+    { "Org_Name": "Ashford & Vale Brokerage", "Sponsor_Status": "In Negotiation", "Current_Tier": "Silver", "Outreach_Stage": "Proposal Sent" },
+    { "Org_Name": "Tidewater REIT Holdings", "Sponsor_Status": "Active Sponsor", "Current_Tier": "Platinum", "Outreach_Stage": "Renewal" },
+    { "Org_Name": "Lanternfield Proptech", "Sponsor_Status": "Declined", "Current_Tier": "", "Outreach_Stage": "Closed" }
+  ],
+  "Contacts": [
+    { "Contact_ID": "C001", "Name": "Dana Whitcomb", "Title": "Managing Director", "Organization": "Harborline Capital", "Owner": "Sample Owner A", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C002", "Name": "Ravi Okonkwo", "Title": "Vice President, Acquisitions", "Organization": "Harborline Capital", "Owner": "Sample Owner A", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C003", "Name": "Lena Marchetti", "Title": "Principal", "Organization": "Meridian Square Partners", "Owner": "Sample Owner B", "Approval": "Pending", "Status": "Active" },
+    { "Contact_ID": "C004", "Name": "Theo Brannigan", "Title": "Head of Campus Recruiting", "Organization": "Copperleaf Realty Advisors", "Owner": "Sample Owner C", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C005", "Name": "Priya Castellanos", "Title": "Associate", "Organization": "Copperleaf Realty Advisors", "Owner": "Sample Owner C", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C006", "Name": "Marcus Ellery", "Title": "Senior Vice President", "Organization": "Northgate Development Co.", "Owner": "Sample Owner B", "Approval": "Do Not Contact", "Status": "Inactive" },
+    { "Contact_ID": "C007", "Name": "Simone Achterberg", "Title": "Director of Capital Markets", "Organization": "Bluestone Lending Group", "Owner": "", "Approval": "Pending", "Status": "Active" },
+    { "Contact_ID": "C008", "Name": "Jonah Pellegrino", "Title": "Partner", "Organization": "Ashford & Vale Brokerage", "Owner": "Sample Owner A", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C009", "Name": "Keiko Arnaud", "Title": "Analyst", "Organization": "Ashford & Vale Brokerage", "Owner": "Sample Owner A", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C010", "Name": "Wendell Osei", "Title": "Chief Investment Officer", "Organization": "Tidewater REIT Holdings", "Owner": "Sample Owner D", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C011", "Name": "Farah Lindqvist", "Title": "Marketing Manager", "Organization": "Tidewater REIT Holdings", "Owner": "Sample Owner D", "Approval": "Approved", "Status": "Active" },
+    { "Contact_ID": "C012", "Name": "Gideon Talbot", "Title": "Founder & CEO", "Organization": "Lanternfield Proptech", "Owner": "Sample Owner C", "Approval": "Approved", "Status": "Inactive" }
+  ],
+  "Outreach_Log": [
+    { "Date": "2026-09-14", "Contact_ID": "C001", "Channel": "Email", "Owner": "Sample Owner A", "Summary": "Sent fall sponsorship renewal deck." },
+    { "Date": "2026-10-02", "Contact_ID": "C001", "Channel": "Call", "Owner": "Sample Owner A", "Summary": "Confirmed Gold renewal; awaiting signed form." },
+    { "Date": "2026-09-20", "Contact_ID": "C003", "Channel": "LinkedIn", "Owner": "Sample Owner B", "Summary": "Intro message about speaker panel." },
+    { "Date": "2026-10-11", "Contact_ID": "C004", "Channel": "Email", "Owner": "Sample Owner C", "Summary": "Proposed date for site visit event." },
+    { "Date": "2026-10-28", "Contact_ID": "C005", "Channel": "Email", "Owner": "Sample Owner C", "Summary": "Shared event logistics and headcount." },
+    { "Date": "2026-08-30", "Contact_ID": "C006", "Channel": "Email", "Owner": "Sample Owner B", "Summary": "Asked not to be contacted further." },
+    { "Date": "2026-10-15", "Contact_ID": "C008", "Channel": "Email", "Owner": "Sample Owner A", "Summary": "Sent Silver tier proposal." },
+    { "Date": "2026-11-03", "Contact_ID": "C008", "Channel": "Call", "Owner": "Sample Owner A", "Summary": "Discussed proposal; partner reviewing budget." },
+    { "Date": "2026-10-21", "Contact_ID": "C010", "Channel": "In Person", "Owner": "Sample Owner D", "Summary": "Met at alumni mixer; Platinum renewal likely." },
+    { "Date": "2026-07-18", "Contact_ID": "C012", "Channel": "Email", "Owner": "Sample Owner C", "Summary": "Declined sponsorship this year." }
+  ]
+}

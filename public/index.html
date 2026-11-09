@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SRECRM</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 24px; margin: 0 0 16px; }
+    #search {
+      width: 100%; padding: 10px 12px; font-size: 16px;
+      border: 1px solid #c4c4c4; border-radius: 6px;
+    }
+    .layout { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 640px) { .layout { grid-template-columns: 1fr; } }
+    #results { list-style: none; margin: 0; padding: 0; border: 1px solid #e0e0e0; border-radius: 6px; max-height: 70vh; overflow-y: auto; }
+    #results li { border-bottom: 1px solid #eeeeee; }
+    #results li:last-child { border-bottom: 0; }
+    #results button {
+      all: unset; display: block; width: 100%; padding: 10px 12px; cursor: pointer;
+    }
+    #results button:hover, #results button:focus-visible { background: #f2f5fb; }
+    #results button.selected { background: #e3eafa; }
+    .kind { font-size: 12px; color: #555555; text-transform: uppercase; letter-spacing: 0.04em; }
+    .sub { font-size: 14px; color: #555555; }
+    #detail { border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; min-height: 200px; }
+    #detail h2 { font-size: 20px; margin: 0 0 4px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 16px 0 0; }
+    dt { color: #555555; }
+    dd { margin: 0; }
+    .empty { color: #555555; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SRECRM</h1>
+    <input id="search" type="search" placeholder="Search a firm or contact" autocomplete="off" aria-label="Search a firm or contact">
+    <div class="layout">
+      <ul id="results" aria-label="Results"></ul>
+      <section id="detail" aria-live="polite"><p class="empty">Select a contact or firm to see details.</p></section>
+    </div>
+  </main>
+
+  <script>
+    let data = { Organizations: [], Contacts: [], Outreach_Log: [] };
+    let selectedKey = null;
+
+    function esc(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function orgByName(name) {
+      return data.Organizations.find(o => o.Org_Name === name) || null;
+    }
+
+    // Most recent Outreach_Log row for any of the given contact IDs.
+    function lastTouch(contactIds) {
+      const rows = data.Outreach_Log.filter(r => contactIds.includes(r.Contact_ID));
+      rows.sort((a, b) => String(b.Date).localeCompare(String(a.Date)));
+      return rows[0] || null;
+    }
+
+    function touchText(row) {
+      if (!row) return "No outreach logged";
+      return `${row.Date} · ${row.Channel} · ${row.Owner}: ${row.Summary}`;
+    }
+
+    function orDash(v) { return v ? v : "—"; }
+
+    function buildItems(query) {
+      const q = query.trim().toLowerCase();
+      const items = [];
+      for (const c of data.Contacts) {
+        const hay = `${c.Name} ${c.Title} ${c.Organization}`.toLowerCase();
+        if (!q || hay.includes(q)) {
+          items.push({ key: "c:" + c.Contact_ID, kind: "Contact", title: c.Name, sub: `${c.Title}, ${c.Organization}` });
+        }
+      }
+      for (const o of data.Organizations) {
+        if (!q || o.Org_Name.toLowerCase().includes(q)) {
+          items.push({ key: "o:" + o.Org_Name, kind: "Organization", title: o.Org_Name, sub: orDash(o.Sponsor_Status) });
+        }
+      }
+      return items;
+    }
+
+    function renderResults() {
+      const items = buildItems(document.getElementById("search").value);
+      const list = document.getElementById("results");
+      if (!items.length) {
+        list.innerHTML = '<li><p class="empty" style="padding:10px 12px;margin:0">No matches.</p></li>';
+        return;
+      }
+      list.innerHTML = items.map(it => `
+        <li><button type="button" data-key="${esc(it.key)}" class="${it.key === selectedKey ? "selected" : ""}">
+          <div class="kind">${esc(it.kind)}</div>
+          <div>${esc(it.title)}</div>
+          <div class="sub">${esc(it.sub)}</div>
+        </button></li>`).join("");
+    }
+
+    function renderContact(c) {
+      const org = orgByName(c.Organization);
+      return `
+        <div class="kind">Contact</div>
+        <h2>${esc(c.Name)}</h2>
+        <div class="sub">${esc(c.Title)}, ${esc(c.Organization)}</div>
+        <dl>
+          <dt>Owner</dt><dd>${esc(orDash(c.Owner))}</dd>
+          <dt>Approval</dt><dd>${esc(orDash(c.Approval))}</dd>
+          <dt>Status</dt><dd>${esc(orDash(c.Status))}</dd>
+          <dt>Last touch</dt><dd>${esc(touchText(lastTouch([c.Contact_ID])))}</dd>
+          <dt>Firm sponsor status</dt><dd>${esc(orDash(org && org.Sponsor_Status))}</dd>
+          <dt>Firm tier</dt><dd>${esc(orDash(org && org.Current_Tier))}</dd>
+        </dl>`;
+    }
+
+    function renderOrg(o) {
+      const contacts = data.Contacts.filter(c => c.Organization === o.Org_Name);
+      const owners = [...new Set(contacts.map(c => c.Owner).filter(Boolean))];
+      const names = contacts.map(c => `${c.Name} (${orDash(c.Approval)})`);
+      return `
+        <div class="kind">Organization</div>
+        <h2>${esc(o.Org_Name)}</h2>
+        <dl>
+          <dt>Owner</dt><dd>${esc(owners.length ? owners.join(", ") : "—")}</dd>
+          <dt>Sponsor status</dt><dd>${esc(orDash(o.Sponsor_Status))}</dd>
+          <dt>Tier</dt><dd>${esc(orDash(o.Current_Tier))}</dd>
+          <dt>Outreach stage</dt><dd>${esc(orDash(o.Outreach_Stage))}</dd>
+          <dt>Last touch</dt><dd>${esc(touchText(lastTouch(contacts.map(c => c.Contact_ID))))}</dd>
+          <dt>Contacts</dt><dd>${esc(names.length ? names.join("; ") : "—")}</dd>
+        </dl>`;
+    }
+
+    function renderDetail() {
+      const panel = document.getElementById("detail");
+      if (!selectedKey) {
+        panel.innerHTML = '<p class="empty">Select a contact or firm to see details.</p>';
+        return;
+      }
+      const id = selectedKey.slice(2);
+      if (selectedKey.startsWith("c:")) {
+        const c = data.Contacts.find(x => x.Contact_ID === id);
+        panel.innerHTML = c ? renderContact(c) : "";
+      } else {
+        const o = orgByName(id);
+        panel.innerHTML = o ? renderOrg(o) : "";
+      }
+    }
+
+    document.getElementById("search").addEventListener("input", renderResults);
+    document.getElementById("results").addEventListener("click", e => {
+      const btn = e.target.closest("button[data-key]");
+      if (!btn) return;
+      selectedKey = btn.dataset.key;
+      renderResults();
+      renderDetail();
+    });
+
+    fetch("/api/data")
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(json => { data = json; renderResults(); })
+      .catch(() => {
+        document.getElementById("results").innerHTML = '<li><p class="empty" style="padding:10px 12px;margin:0">Could not load data.</p></li>';
+      });
+  </script>
+</body>
+</html>
