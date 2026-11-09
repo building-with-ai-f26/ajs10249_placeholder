@@ -41,6 +41,19 @@
     .history { list-style: none; margin: 0; padding: 0; }
     .history li { padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
     .history li:last-child { border-bottom: 0; }
+    .log-form { display: grid; gap: 8px; }
+    .log-form label { display: grid; gap: 2px; font-size: 14px; color: #555555; }
+    .log-form input, .log-form select, .log-form textarea {
+      font: inherit; color: #1a1a1a; padding: 6px 8px; border: 1px solid #c4c4c4; border-radius: 6px; min-width: 0;
+    }
+    .log-form .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 640px) { .log-form .row { grid-template-columns: 1fr; } }
+    .log-form .row-end { display: flex; align-items: center; gap: 12px; }
+    .log-form button {
+      font: inherit; padding: 8px 14px; border: 0; border-radius: 6px; background: #1d4ed8; color: #ffffff; cursor: pointer;
+    }
+    .log-form button:disabled { opacity: 0.6; cursor: default; }
+    .error { color: #b91c1c; }
   </style>
 </head>
 <body>
@@ -133,6 +146,34 @@
         </button></li>`).join("");
     }
 
+    const CHANNELS = ["Email", "Call", "LinkedIn", "In Person", "Other"];
+
+    // Form to log an outreach. One contact: fixed. Several (firm view): pick one.
+    function renderLogForm(contacts, defaultOwner) {
+      if (!contacts.length) return "";
+      const today = new Date().toLocaleDateString("en-CA");
+      const who = contacts.length === 1
+        ? `<input type="hidden" name="Contact_ID" value="${esc(contacts[0].Contact_ID)}">`
+        : `<label>Contact<select name="Contact_ID" required>${contacts.map(c =>
+            `<option value="${esc(c.Contact_ID)}">${esc(c.Name)}</option>`).join("")}</select></label>`;
+      return `
+        <h3>Log outreach</h3>
+        <form id="log-form" class="log-form">
+          ${who}
+          <div class="row">
+            <label>Date<input type="date" name="Date" value="${esc(today)}" required></label>
+            <label>Channel<select name="Channel" required>${CHANNELS.map(ch =>
+              `<option>${esc(ch)}</option>`).join("")}</select></label>
+            <label>Owner<input type="text" name="Owner" value="${esc(defaultOwner)}" maxlength="80" required></label>
+          </div>
+          <label>Summary<textarea name="Summary" rows="2" maxlength="500" required></textarea></label>
+          <div class="row-end">
+            <button type="submit">Log outreach</button>
+            <span id="log-status" class="sub" role="status"></span>
+          </div>
+        </form>`;
+    }
+
     function renderContact(c) {
       const org = orgByName(c.Organization);
       return `
@@ -147,6 +188,7 @@
           <dt>Firm sponsor status</dt><dd>${esc(orDash(org && org.Sponsor_Status))}</dd>
           <dt>Firm tier</dt><dd>${esc(orDash(org && org.Current_Tier))}</dd>
         </dl>
+        ${renderLogForm([c], c.Owner)}
         ${renderHistory(historyFor([c.Contact_ID]), false)}`;
     }
 
@@ -165,6 +207,7 @@
           <dt>Last touch</dt><dd>${esc(touchText(lastTouch(contacts.map(c => c.Contact_ID))))}</dd>
           <dt>Contacts</dt><dd>${esc(names.length ? names.join("; ") : "—")}</dd>
         </dl>
+        ${renderLogForm(contacts, owners[0] || "")}
         ${renderHistory(historyFor(contacts.map(c => c.Contact_ID)), true)}`;
     }
 
@@ -191,6 +234,35 @@
       selectedKey = btn.dataset.key;
       renderResults();
       renderDetail();
+    });
+
+    document.getElementById("detail").addEventListener("submit", async e => {
+      if (e.target.id !== "log-form") return;
+      e.preventDefault();
+      const form = e.target;
+      const button = form.querySelector("button");
+      const status = document.getElementById("log-status");
+      const row = Object.fromEntries(new FormData(form));
+      button.disabled = true;
+      status.className = "sub";
+      status.textContent = "Saving…";
+      try {
+        const res = await fetch("/api/outreach", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(row),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Could not save");
+        data.Outreach_Log.push(json);
+        renderDetail();
+        const fresh = document.getElementById("log-status");
+        if (fresh) fresh.textContent = "Logged.";
+      } catch (err) {
+        status.className = "sub error";
+        status.textContent = err.message;
+        button.disabled = false;
+      }
     });
 
     fetch("/api/data")
