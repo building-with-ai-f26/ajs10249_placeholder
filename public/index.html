@@ -37,6 +37,10 @@
     dt { color: #555555; }
     dd { margin: 0; }
     .empty { color: #555555; }
+    #detail h3 { font-size: 15px; margin: 20px 0 8px; padding-top: 12px; border-top: 1px solid #eeeeee; }
+    .history { list-style: none; margin: 0; padding: 0; }
+    .history li { padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
+    .history li:last-child { border-bottom: 0; }
   </style>
 </head>
 <body>
@@ -66,11 +70,28 @@
       return data.Organizations.find(o => o.Org_Name === name) || null;
     }
 
-    // Most recent Outreach_Log row for any of the given contact IDs.
-    function lastTouch(contactIds) {
+    // Outreach_Log rows for the given contact IDs, newest first.
+    function historyFor(contactIds) {
       const rows = data.Outreach_Log.filter(r => contactIds.includes(r.Contact_ID));
-      rows.sort((a, b) => String(b.Date).localeCompare(String(a.Date)));
-      return rows[0] || null;
+      return rows.sort((a, b) => String(b.Date).localeCompare(String(a.Date)));
+    }
+
+    function lastTouch(contactIds) {
+      return historyFor(contactIds)[0] || null;
+    }
+
+    function contactName(id) {
+      const c = data.Contacts.find(x => x.Contact_ID === id);
+      return c ? c.Name : id;
+    }
+
+    function renderHistory(rows, showContact) {
+      if (!rows.length) return '<h3>Outreach history</h3><p class="empty">No outreach logged.</p>';
+      return `<h3>Outreach history (${rows.length})</h3><ul class="history">` + rows.map(r => `
+        <li>
+          <div class="sub">${esc(r.Date)} · ${esc(r.Channel)} · ${esc(r.Owner)}${showContact ? " · " + esc(contactName(r.Contact_ID)) : ""}</div>
+          <div>${esc(r.Summary)}</div>
+        </li>`).join("") + "</ul>";
     }
 
     function touchText(row) {
@@ -125,7 +146,8 @@
           <dt>Last touch</dt><dd>${esc(touchText(lastTouch([c.Contact_ID])))}</dd>
           <dt>Firm sponsor status</dt><dd>${esc(orDash(org && org.Sponsor_Status))}</dd>
           <dt>Firm tier</dt><dd>${esc(orDash(org && org.Current_Tier))}</dd>
-        </dl>`;
+        </dl>
+        ${renderHistory(historyFor([c.Contact_ID]), false)}`;
     }
 
     function renderOrg(o) {
@@ -142,7 +164,8 @@
           <dt>Outreach stage</dt><dd>${esc(orDash(o.Outreach_Stage))}</dd>
           <dt>Last touch</dt><dd>${esc(touchText(lastTouch(contacts.map(c => c.Contact_ID))))}</dd>
           <dt>Contacts</dt><dd>${esc(names.length ? names.join("; ") : "—")}</dd>
-        </dl>`;
+        </dl>
+        ${renderHistory(historyFor(contacts.map(c => c.Contact_ID)), true)}`;
     }
 
     function renderDetail() {
