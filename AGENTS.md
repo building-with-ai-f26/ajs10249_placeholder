@@ -1,22 +1,20 @@
-# AGENTS.md — Coding Agent Operating Manual
+# SRECRM: a sponsorship CRM for the NYU Stern Real Estate Club board
 
-> Give this file to your coding agent and check that it is using these instructions. Keep the stack, commands, and ground rules current.
+One job: let a board member find a firm or contact, see the history, and log an outreach in under a minute.
 
-## 1. Project Overview
-- **What this repo builds:** [1–2 sentence summary]
-- **Primary user & core workflow:** [See the living PRD in `docs/index.html`]
-- **Tech stack:** [e.g., Python 3.12 / FastAPI / Next.js / SQLite / OpenRouter API]
+## Rules
+- Small changes. Commit after each working step with a clear message.
+- Never commit secrets. Keys, the service-account JSON, and the Google Sheet ID live in .env (listed in .gitignore).
+- Never commit real contact data. Sheet contents (names, emails, phone numbers, alumni rows) stay in the sheet. The repo holds sample data only, in data/sample/.
+- The Google Sheet is the source of truth. The app reads it via a service account and writes only to log tabs (Outreach_Log, Event_Attendance). Core fields are edited in the sheet by design.
+- Read sheet columns by header name, never by position.
+- Plain stack: Node + Express backend, plain HTML/CSS/JS frontend, no framework, no build step, unless I say otherwise.
+- Before saying "done", run the app and tell me exactly how you verified it.
+- Keep docs/index.html (Product Page = PRD + build log) up to date.
+- If a task gets big or confusing, stop and propose a smaller slice.
 
-## 2. Commands
-- **Install dependencies:** `[e.g., npm install / uv sync]`
-- **Run locally:** `[e.g., npm run dev]`
-- **Run deterministic tests:** `[e.g., pytest / npm test]`
-- **Run model evals:** `[e.g., python tests/eval.py]`
+## Weekly build (due Monday noon)
+- Add a build-log entry to docs/index.html: what shipped, what broke, what it cost (tokens, API, hosting, hours), what is next.
 
-## 3. Non-Negotiable Engineering Rules
-1. **Plan before coding:** Before touching multiple files, propose a brief plan and wait for approval.
-2. **Small batches:** Make small, focused changes that can be reviewed and explained by a human in a single Pull Request.
-3. **Explainability:** Avoid unnecessary abstractions or dependencies. Help the human builder understand the main components, what changed, why it matters, what could break, and how it was checked.
-4. **Verify changes:** Run relevant checks. For a reproducible logic bug, use a failing test to demonstrate the fix when practical. Record manual checks and known limitations; follow the selected Build 4 evaluation track.
-5. **Zero secrets in code:** Never hardcode API keys, tokens, or credentials. Always read from environment variables (`.env`) and update `.env.example` when new variables are needed.
-6. **Stop when looping:** If a fix fails twice in a row, stop, summarize what failed, and ask the human before trying a third approach.
+## Prior work
+- docs/prior-work/ holds the design summary of an earlier Google Apps Script version. Reuse its data model and feature decisions; do not reuse its architecture.
