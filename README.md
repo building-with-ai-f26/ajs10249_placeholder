@@ -1,4 +1,4 @@
-# [Project Name]
+# SRECRM
 
 > **One-line pitch:** [Who is this for, and what job does it do for them?]
 
