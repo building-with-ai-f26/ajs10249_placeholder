@@ -5,7 +5,8 @@
   "description": "Sponsorship CRM for the NYU Stern Real Estate Club board",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file-if-exists=.env server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "dedupe": "node --env-file=.env scripts/dedupe-contacts.js"
   },
   "dependencies": {
     "@googleapis/sheets": "^18.1.3",
