@@ -5,9 +5,11 @@
   "description": "Sponsorship CRM for the NYU Stern Real Estate Club board",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node --env-file-if-exists=.env server.js"
   },
   "dependencies": {
+    "@googleapis/sheets": "^18.1.3",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2"
   }
 }
