@@ -43,3 +43,15 @@ cd <your-repo-name>
 ```
 
 If your app needs API keys, use a local environment file such as `.env`. Keep private keys out of source code, browser code, screenshots, and commits. The template ignores `.env`; `.env.example` contains placeholders only.
+
+### Run SRECRM
+
+```bash
+npm install
+cp .env.example .env   # then pick DATA_SOURCE and fill the paths
+npm start              # http://localhost:3000
+```
+
+- `DATA_SOURCE=sample` (default): made-up data in `data/sample/`. Use for screenshots.
+- `DATA_SOURCE=xlsx`: a downloaded copy of the sheet, read-only. Keep it outside the repo and OneDrive.
+- `DATA_SOURCE=google`: the live sheet. Needs an OAuth "Web application" client (Internal app in an NYU Cloud project, Sheets API enabled, redirect `http://localhost:3000/oauth2callback`). Its JSON and the sign-in token stay outside the repo. Open the app and click **Sign in with Google** once.

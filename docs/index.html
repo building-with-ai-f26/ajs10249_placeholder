@@ -84,7 +84,8 @@
     <ul>
       <li><strong>Backend:</strong> Node + Express.</li>
       <li><strong>Frontend:</strong> plain HTML, CSS and JavaScript.</li>
-      <li><strong>Data:</strong> the existing Google Sheet stays the source of truth, read through a Google service account (credentials in <code>.env</code>). The app writes only to log tabs.</li>
+      <li><strong>Data:</strong> the existing Google Sheet stays the source of truth. The app signs in with Google (OAuth, an Internal app in an NYU Cloud project) instead of a service account: no long-lived key to protect, NYU's sharing rules don't get in the way, and each board member can later sign in as themselves so access follows the sheet's own sharing. The sign-in token and client file live outside the repo; settings are in <code>.env</code>. Columns are read by header name, only the fields the screen shows leave the server, and the app writes only to <code>Outreach_Log</code>.</li>
+      <li><strong>Data modes:</strong> <code>DATA_SOURCE</code> switches between sample data (default, for screenshots and tests), a read-only Excel copy (demo fallback) and the live sheet.</li>
       <li><strong>Access control:</strong> in the app. Google sign-in limited to nyu.edu plus an allowlist (Build 5).</li>
       <li><strong>Build 1:</strong> runs on localhost with sample data and no login.</li>
     </ul>
@@ -122,6 +123,15 @@
       <li><strong>What broke:</strong> an old server process kept port 3000 busy after a restart; malformed requests returned an error page that exposed local file paths (fixed with a short JSON error); a sideways scrollbar in the results list (fixed); the first push was rejected until I pulled a README edit made on GitHub.</li>
       <li><strong>Cost:</strong> 1 hr, ~6M tokens (estimate, mostly cached). No API or hosting cost yet.</li>
       <li><strong>Next:</strong> Build 2: read the real Google Sheet through a service account (the riskiest part), add PostHog events, and publish PRD v2 with risks, architecture and budget.</li>
+    </ul>
+
+    <h3>November 13, 2026</h3>
+    <ul>
+      <li><strong>What shipped:</strong> live connection to the real sponsorship sheet (174 firms, 450 contacts). Search and history now run on real data, and logging an outreach writes a row to the sheet's <code>Outreach_Log</code> tab. Channels and owner suggestions come from the sheet's Lists tab. A read-only Excel-copy mode is kept as a demo fallback.</li>
+      <li><strong>Decision:</strong> switched from a service account to Google sign-in (OAuth). The sheet is in NYU's Google Workspace, where service-account keys and outside sharing are often blocked; sign-in also sets up per-person access for later.</li>
+      <li><strong>What broke:</strong> a three-day-old server was still holding port 3000, so the first test hit old code; the sample data's channel list didn't match the real sheet's; the sheet's Contact column is a formula filled down to row 100, so a plain append would have landed at row 101 (the app now writes into the first empty row and leaves formulas alone); 38 contacts have no organization filled in.</li>
+      <li><strong>Cost:</strong> ~2 hrs, tokens [fill in]. No API or hosting cost (Google Sheets API is free at this volume).</li>
+      <li><strong>Next:</strong> board feedback from today's demo; PostHog events; PRD v2 risks and budget; per-person sign-in so <code>Owner</code> is filled from who is logged in.</li>
     </ul>
 
     <footer>
