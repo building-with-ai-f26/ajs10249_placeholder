@@ -287,7 +287,7 @@
     function orDash(v) { return v ? v : "—"; }
     function joinSub(...parts) { return parts.filter(Boolean).join(" · "); }
     function initials(name) {
-      return String(name).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+      return String(name).split(/\s+/).map(w => (w.match(/[A-Za-z0-9]/) || [""])[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
     }
     function orgByName(name) { return data.Organizations.find(o => o.Org_Name === name) || null; }
     function contactsOf(org) { return byOrg.get(org.Org_Name) || []; }
