@@ -173,11 +173,12 @@ app.post("/api/assign", (req, res) => {
       if (owner && data.Owners.length && !data.Owners.includes(owner)) {
         return res.status(400).json({ error: "Pick someone from the team list" });
       }
-      const exists = kind === "firm"
-        ? data.Organizations.some(o => o.Org_Name === key)
-        : data.Contacts.some(c => c.Contact_ID === key);
-      if (!exists) return res.status(400).json({ error: "Unknown record" });
-      const previous = await source.setOwner(kind, key, owner, expected);
+      const record = kind === "firm"
+        ? data.Organizations.find(o => o.Org_Name === key)
+        : data.Contacts.find(c => c.Contact_ID === key);
+      if (!record) return res.status(400).json({ error: "Unknown record" });
+      const ids = [key, ...(record.Alt_IDs || [])]; // duplicate rows of the same person
+      const previous = await source.setOwner(kind, key, owner, expected, ids);
       cache = null;
       res.json({ kind, key, owner, previous });
     } catch (err) {

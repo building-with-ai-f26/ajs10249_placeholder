@@ -505,7 +505,8 @@
       if (people.length) html += `<li class="group">People (${people.length})</li>` + people.map(personItem).join("");
       list.innerHTML = html || '<li><p class="empty" style="padding:10px 12px;margin:0">No matches.</p></li>';
       document.getElementById("stats").textContent =
-        `Showing ${firms.length} of ${data.Organizations.length} firms · ${data.Contacts.filter(isApproved).length} approved contacts overall`;
+        `Showing ${firms.length} of ${data.Organizations.length} firms · ${data.Contacts.filter(isApproved).length} approved contacts overall` +
+        (data.Duplicates && data.Duplicates.rows ? ` · ${data.Duplicates.rows} duplicate contact rows merged` : "");
     }
 
     // ---------- Firm detail ----------
@@ -669,7 +670,8 @@
       if (!selectedKey) return;
       const id = selectedKey.slice(2);
       if (selectedKey.startsWith("c:")) {
-        const c = data.Contacts.find(x => x.Contact_ID === id);
+        // Old links to a duplicate row's ID open the merged person.
+        const c = data.Contacts.find(x => x.Contact_ID === id || (x.Alt_IDs || []).includes(id));
         panel.innerHTML = c ? renderContact(c) : '<p class="empty">Contact not found.</p>';
       } else {
         const o = orgByName(id);
