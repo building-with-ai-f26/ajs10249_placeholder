@@ -57,6 +57,36 @@
     .team-table td.n, .team-table th.n { text-align: right; font-variant-numeric: tabular-nums; }
     .team-table tr.me td { background: var(--brand-soft); font-weight: 600; }
     .panel.live { border-style: solid; }
+    .tabs .count:empty { display: none; }
+    .tabs .count { font-size: 11px; font-weight: 700; background: var(--brand); color: #fff; border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
+    .task-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    @media (max-width: 760px) { .task-tools { grid-template-columns: 1fr; } }
+    .task-card { padding: 18px; display: grid; gap: 10px; align-content: start; }
+    .task-card h3 { margin: 0; font-size: 15px; }
+    .task-card label, .task-done-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 500; color: var(--muted); }
+    .task-card input, .task-card select, .task-done-form input, .task-done-form select, .task-add input, .task-add select {
+      font: inherit; font-size: 14px; color: var(--ink); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; background: #ffffff;
+    }
+    .task-card .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-end { display: flex; align-items: center; gap: 12px; }
+    .task-group { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; margin: 16px 0 6px; }
+    .task-group.overdue { color: #b91c1c; }
+    .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .task { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: start; background: var(--card); }
+    .task .tick { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--brand); background: none; cursor: pointer; margin-top: 1px; padding: 0; }
+    .task .tick:hover { background: var(--brand-soft); }
+    .task.done .tick { background: var(--brand); cursor: default; }
+    .task.done .tick::after { content: "✓"; color: #fff; font-size: 13px; font-weight: 700; }
+    .task .what { font-weight: 600; }
+    .task.done .what { color: var(--muted); text-decoration: line-through; }
+    .task .meta { grid-column: 2; font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+    .task .meta .late { color: #b91c1c; font-weight: 600; }
+    .task-done-form { grid-column: 2; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: end; margin-top: 8px; padding: 10px; background: var(--page); border-radius: 8px; }
+    @media (max-width: 640px) { .task-done-form { grid-template-columns: 1fr; } }
+    .task-add { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; margin-top: 8px; }
+    @media (max-width: 640px) { .task-add { grid-template-columns: 1fr; } }
+    .history li.planned { border-left-style: dashed; }
+    .history li.planned::before { background: var(--card); border: 2px solid var(--brand); width: 6px; height: 6px; }
 
     main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 56px; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(27, 23, 38, 0.05); }
@@ -217,6 +247,7 @@
         <a href="#home" data-tab="home">Home</a>
         <a href="#dashboard" data-tab="dashboard">Dashboard</a>
         <a href="#firms" data-tab="firms">Firms &amp; Outreach</a>
+        <a href="#tasks" data-tab="tasks">Tasks <span id="task-count" class="count"></span></a>
       </nav>
       <span id="source"></span>
       <label class="me-pick">I'm <select id="me" aria-label="Who are you?"><option value="">pick your name</option></select></label>
@@ -268,6 +299,40 @@
         <div class="card panel"><h3>Sponsorship $ vs. goal</h3><p>Committed and received this academic year against the club's target.</p><div class="ghost-bars"><span style="height:55%"></span><span style="height:100%;background:#eeecf2"></span></div></div>
         <div class="card panel"><h3>Follow-ups due</h3><p>Next steps coming up this week, by owner — so nothing goes cold.</p></div>
       </div>
+    </section>
+
+    <!-- Tasks -->
+    <section id="view-tasks" hidden>
+      <div class="page-head"><h1>Tasks</h1></div>
+      <p class="sub" style="margin:0">Assign follow-ups to someone on the team. Checking one off logs it as outreach in the sheet.</p>
+      <div class="task-tools">
+        <form class="card task-card task-new-form">
+          <h3>New task</h3>
+          <label>What needs doing<input type="text" name="Task" maxlength="300" required placeholder="e.g. Ask about spring sponsorship renewal"></label>
+          <div class="row2">
+            <label>Assign to<select name="Assigned_To" class="team-select" required></select></label>
+            <label>Due (optional)<input type="date" name="Due"></label>
+          </div>
+          <p class="sub" style="font-size:12px;margin:0">To tie a task to a person or firm, add it from their page.</p>
+          <div class="row-end"><button type="submit" class="btn small">Add task</button><span class="form-status sub" role="status"></span></div>
+        </form>
+        <form class="card task-card panel-form">
+          <h3>Follow up with a panel</h3>
+          <label>Event<select name="Event_Name" id="panel-event" required></select></label>
+          <label>Task for each panelist<input type="text" name="Task" maxlength="300" required></label>
+          <div class="row2">
+            <label>Assign to<select name="Assigned_To" class="team-select" required></select></label>
+            <label>Due (optional)<input type="date" name="Due"></label>
+          </div>
+          <div class="row-end"><button type="submit" class="btn small">Create tasks</button><span class="form-status sub" role="status"></span></div>
+        </form>
+      </div>
+      <div class="chips" role="group" aria-label="Which tasks" id="task-chips">
+        <button type="button" class="chip" data-tasks="mine" aria-pressed="true">Mine</button>
+        <button type="button" class="chip" data-tasks="open" aria-pressed="false">All open</button>
+        <button type="button" class="chip" data-tasks="done" aria-pressed="false">Done</button>
+      </div>
+      <div id="task-list" class="card" style="padding:8px 18px 18px;margin-top:12px"></div>
     </section>
 
     <!-- Firms & Outreach -->
@@ -427,7 +492,8 @@
         firms: data.Organizations.filter(o => o.Owner === name).length,
         contacts: data.Contacts.filter(c => c.Owner === name).length,
         outreach: data.Outreach_Log.filter(r => r.Owner === name && r.Date >= since).length,
-      })).sort((a, b) => (b.firms + b.contacts + b.outreach) - (a.firms + a.contacts + a.outreach) || a.name.localeCompare(b.name));
+        tasks: openTasks().filter(t => t.Assigned_To === name).length,
+      })).sort((a, b) => (b.firms + b.contacts + b.tasks + b.outreach) - (a.firms + a.contacts + a.tasks + a.outreach) || a.name.localeCompare(b.name));
       const unclaimed = data.Organizations.filter(isUnclaimed);
       const unclaimedApproved = unclaimed.filter(o => contactsOf(o).some(isApproved)).length;
       document.getElementById("team-panel").innerHTML = `
@@ -435,9 +501,9 @@
         <p><strong>${unclaimed.length} of ${data.Organizations.length} firms</strong> have nobody on them${unclaimedApproved ? `, including ${unclaimedApproved} with approved contacts` : ""}.
           <button type="button" class="btn small" id="go-unclaimed" style="margin-left:6px">Pick one up →</button></p>
         <table class="team-table">
-          <thead><tr><th>Team member</th><th class="n">Firms</th><th class="n">Contacts</th><th class="n">Outreach (30 days)</th></tr></thead>
+          <thead><tr><th>Team member</th><th class="n">Firms</th><th class="n">Contacts</th><th class="n">Open tasks</th><th class="n">Outreach (30 days)</th></tr></thead>
           <tbody>${rows.map(r => `<tr class="${r.name === me ? "me" : ""}"><td><button type="button" class="link" data-owner="${esc(r.name)}">${esc(r.name)}</button></td>
-            <td class="n">${r.firms}</td><td class="n">${r.contacts}</td><td class="n">${r.outreach}</td></tr>`).join("")}</tbody>
+            <td class="n">${r.firms}</td><td class="n">${r.contacts}</td><td class="n">${r.tasks}</td><td class="n">${r.outreach}</td></tr>`).join("")}</tbody>
         </table>`;
     }
     function showFirms({ filter = "all", owner = "" }) {
@@ -598,7 +664,9 @@
         <div class="about" id="about" data-org="${esc(o.Org_Name)}">${renderAbout(o)}</div>
         <h3>People (${people.length})</h3>
         ${people.length ? `<ul class="people">${people.map(c => personCard(c, o)).join("")}</ul>` : '<p class="empty">No contacts at this firm yet.</p>'}
-        ${renderHistory(historyFor(people.map(c => c.Contact_ID)), true)}`;
+        ${renderActivity(historyFor(people.map(c => c.Contact_ID)),
+          openTasks().filter(t => t.Org_Name === o.Org_Name || people.some(c => c.Contact_ID === t.Contact_ID)),
+          { Org_Name: o.Org_Name }, true)}`;
     }
 
     // ---------- Contact detail ----------
@@ -662,7 +730,8 @@
         </dl>
         ${renderRelationships(c)}
         ${renderLogForm(c)}
-        ${renderHistory(historyFor([c.Contact_ID]), false)}`;
+        ${renderActivity(historyFor([c.Contact_ID]), openTasks().filter(t => t.Contact_ID === c.Contact_ID),
+          { Contact_ID: c.Contact_ID }, false)}`;
     }
 
     function renderDetail() {
@@ -680,13 +749,211 @@
       panel.scrollTop = 0;
     }
 
-    // ---------- Routing: #home, #dashboard, #firms, #o:Firm, #c:ID ----------
-    function route() {
+    // ---------- Tasks ----------
+    let taskFilter = me ? "mine" : "open";
+    const todayISO = () => new Date().toLocaleDateString("en-CA");
+    const inDays = n => new Date(Date.now() + n * 86400000).toLocaleDateString("en-CA");
+
+    function teamOptions(selected) {
+      return team().map(n => `<option${n === selected ? " selected" : ""}>${esc(n)}</option>`).join("");
+    }
+    function openTasks() { return data.Tasks.filter(t => t.Status !== "Done"); }
+
+    function fillTaskControls() {
+      document.querySelectorAll("#view-tasks .team-select").forEach(s => { s.innerHTML = teamOptions(me); });
+      const ev = document.getElementById("panel-event");
+      ev.innerHTML = data.Panels.length
+        ? data.Panels.map(p => `<option value="${esc(p.Event_Name)}">${esc(p.Event_Name)} (${p.Contact_IDs.length} panelist${p.Contact_IDs.length === 1 ? "" : "s"})</option>`).join("")
+        : '<option value="">No panelists in the sheet yet</option>';
+      setPanelTaskText();
+      document.querySelectorAll("#task-chips .chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.tasks === taskFilter)));
+    }
+    function setPanelTaskText() {
+      const ev = document.getElementById("panel-event").value;
+      document.querySelector(".panel-form [name=Task]").value = ev ? `Thank-you and follow-up after ${ev}` : "";
+    }
+
+    function renderTaskCount() {
+      const n = me ? openTasks().filter(t => t.Assigned_To === me).length : 0;
+      document.getElementById("task-count").textContent = n ? String(n) : "";
+    }
+
+    function taskTarget(t) {
+      const c = t.Contact_ID && data.Contacts.find(x => x.Contact_ID === t.Contact_ID);
+      const parts = [];
+      if (c) parts.push(`<button type="button" class="link" data-key="c:${esc(c.Contact_ID)}">${esc(c.Name)}</button>`);
+      if (t.Org_Name && orgByName(t.Org_Name)) parts.push(`<button type="button" class="link" data-key="o:${esc(t.Org_Name)}">${esc(t.Org_Name)}</button>`);
+      else if (t.Org_Name) parts.push(esc(t.Org_Name));
+      if (t.Event_Name) parts.push(esc(t.Event_Name));
+      return parts.join(" · ");
+    }
+
+    function taskItem(t, showTarget) {
+      const done = t.Status === "Done";
+      const late = !done && t.Due && t.Due < todayISO();
+      const who = !done && data.Source.canWrite
+        ? `<select class="assign task-assign" data-task="${esc(t.Task_ID)}" data-current="${esc(t.Assigned_To)}" aria-label="Assigned to">${teamOptions(t.Assigned_To)}</select>`
+        : `<span>${esc(t.Assigned_To || "Unassigned")}</span>`;
+      return `<li class="task${done ? " done" : ""}" data-task-row="${esc(t.Task_ID)}">
+        ${done || !data.Source.canWrite ? '<span class="tick" aria-hidden="true"></span>'
+          : `<button type="button" class="tick" data-task-tick="${esc(t.Task_ID)}" aria-label="Check off: ${esc(t.Task)}"></button>`}
+        <div class="what">${esc(t.Task)}</div>
+        <div class="meta">
+          ${showTarget && taskTarget(t) ? `<span>${taskTarget(t)}</span>` : ""}
+          ${done ? `<span>Done ${esc(t.Done_Date)}${t.Done_Note ? " · " + esc(t.Done_Note) : ""}</span>`
+                 : `<span class="${late ? "late" : ""}">${t.Due ? (late ? "Overdue · due " : "Due ") + esc(t.Due) : "No due date"}</span>`}
+          <span>${done ? "by " : ""}${who}</span>
+        </div>
+      </li>`;
+    }
+
+    function taskDoneForm(t) {
+      const hasContact = t.Contact_ID && data.Contacts.some(c => c.Contact_ID === t.Contact_ID);
+      return `<form class="task-done-form" data-task="${esc(t.Task_ID)}">
+        ${hasContact ? `<label>How<select name="Channel" required>${data.Channels.map(ch => `<option>${esc(ch)}</option>`).join("")}</select></label>` : ""}
+        <label${hasContact ? "" : ' style="grid-column:1 / 3"'}>What happened (optional)<input type="text" name="Note" maxlength="300" placeholder="e.g. Sent thank-you; she'll intro us to their sponsorship lead"></label>
+        <button type="submit" class="btn small">${hasContact ? "Done · log outreach" : "Mark done"}</button>
+      </form>`;
+    }
+
+    function groupedTasks(list, showTarget) {
+      const t0 = todayISO(), week = inDays(7);
+      const groups = [
+        ["Overdue", list.filter(t => t.Due && t.Due < t0), "overdue"],
+        ["Due this week", list.filter(t => t.Due && t.Due >= t0 && t.Due <= week)],
+        ["Later", list.filter(t => t.Due && t.Due > week)],
+        ["No due date", list.filter(t => !t.Due)],
+      ];
+      return groups.filter(g => g[1].length).map(([name, items, cls]) =>
+        `<div class="task-group ${cls || ""}">${name} (${items.length})</div><ul class="tasks">` +
+        items.sort((a, b) => (a.Due || "9").localeCompare(b.Due || "9")).map(t => taskItem(t, showTarget)).join("") + "</ul>").join("");
+    }
+
+    function renderTasksView() {
+      const box = document.getElementById("task-list");
+      let html;
+      if (taskFilter === "done") {
+        const done = data.Tasks.filter(t => t.Status === "Done").sort((a, b) => b.Done_Date.localeCompare(a.Done_Date)).slice(0, 100);
+        html = done.length ? `<ul class="tasks" style="margin-top:10px">${done.map(t => taskItem(t, true)).join("")}</ul>` : '<p class="empty">Nothing checked off yet.</p>';
+      } else if (taskFilter === "mine" && !me) {
+        html = '<p class="empty">Pick your name in "I\'m" at the top to see your tasks.</p>';
+      } else {
+        const list = openTasks().filter(t => taskFilter !== "mine" || t.Assigned_To === me);
+        html = list.length ? groupedTasks(list, true)
+          : `<p class="empty">${taskFilter === "mine" ? "Nothing assigned to you. Nice." : "No open tasks."}</p>`;
+      }
+      box.innerHTML = html;
+    }
+
+    // The "Outreach & tasks" block on a firm or contact page: open tasks you can tick off,
+    // a quick add form, then everything already logged.
+    function taskAddForm(target) {
+      if (!data.Source.canWrite) return "";
+      return `<form class="task-add">
+        ${target.Contact_ID ? `<input type="hidden" name="Contact_ID" value="${esc(target.Contact_ID)}">` : ""}
+        ${target.Org_Name ? `<input type="hidden" name="Org_Name" value="${esc(target.Org_Name)}">` : ""}
+        <input type="text" name="Task" maxlength="300" required placeholder="Add a task, e.g. Follow up after the panel" aria-label="Task">
+        <select name="Assigned_To" required aria-label="Assign to">${teamOptions(me)}</select>
+        <input type="date" name="Due" aria-label="Due date">
+        <button type="submit" class="btn ghost small">Add task</button>
+      </form>`;
+    }
+    function renderActivity(historyRows, tasks, target, showContact) {
+      return `<h3>Tasks${tasks.length ? ` (${tasks.length} open)` : ""}</h3>
+        ${tasks.length ? groupedTasks(tasks, showContact) : '<p class="empty" style="margin:0">No open tasks.</p>'}
+        ${taskAddForm(target)}
+        ${renderHistory(historyRows, showContact)}`;
+    }
+
+    async function postJSON(url, body) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Could not save");
+      return json;
+    }
+
+    // Task events work the same on the Tasks tab and on firm/contact pages.
+    document.addEventListener("click", e => {
+      const tick = e.target.closest("button[data-task-tick]");
+      if (tick) {
+        const li = tick.closest(".task");
+        const open = li.querySelector(".task-done-form");
+        if (open) { open.remove(); return; }
+        const t = data.Tasks.find(x => x.Task_ID === tick.dataset.taskTick);
+        if (t) { li.insertAdjacentHTML("beforeend", taskDoneForm(t)); li.querySelector(".task-done-form input, .task-done-form select").focus(); }
+        return;
+      }
+      const chip = e.target.closest("#task-chips .chip");
+      if (chip) {
+        taskFilter = chip.dataset.tasks;
+        document.querySelectorAll("#task-chips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === chip)));
+        renderTasksView();
+        return;
+      }
+      const go = e.target.closest("#task-list button[data-key]");
+      if (go) select(go.dataset.key);
+    });
+    document.getElementById("panel-event").addEventListener("change", setPanelTaskText);
+
+    document.addEventListener("change", async e => {
+      const sel = e.target.closest("select.task-assign");
+      if (!sel) return;
+      sel.disabled = true;
+      try {
+        await postJSON("/api/tasks/assign", { Task_ID: sel.dataset.task, Assigned_To: sel.value, expected: sel.dataset.current });
+        toast(`Task assigned to ${sel.value}.`);
+        await reloadData();
+      } catch (err) {
+        sel.value = sel.dataset.current;
+        sel.disabled = false;
+        toast(err.message, true);
+      }
+    });
+
+    document.addEventListener("submit", async e => {
+      const form = e.target;
+      const kind = form.classList.contains("task-done-form") ? "done"
+        : form.matches(".task-new-form, .task-add, .panel-form") ? "new" : "";
+      if (!kind) return;
+      e.preventDefault();
+      const button = form.querySelector("button[type=submit]");
+      const status = form.querySelector(".form-status");
+      button.disabled = true;
+      if (status) { status.className = "form-status sub"; status.textContent = "Saving…"; }
+      try {
+        const fields = Object.fromEntries(new FormData(form));
+        if (kind === "done") {
+          const json = await postJSON("/api/tasks/done", { Task_ID: form.dataset.task, ...fields, Done_By: me });
+          toast(json.logged ? "Done, and logged as outreach in the sheet." : "Done.");
+        } else {
+          if (form.classList.contains("panel-form")) {
+            const panel = data.Panels.find(p => p.Event_Name === fields.Event_Name);
+            if (!panel) throw new Error("Pick an event with panelists");
+            fields.Contact_IDs = panel.Contact_IDs;
+          }
+          const made = await postJSON("/api/tasks", fields);
+          toast(made.length === 1 ? `Task added for ${fields.Assigned_To}.` : `${made.length} tasks created for ${fields.Assigned_To}.`);
+          form.reset();
+        }
+        await reloadData();
+        if (form.isConnected) { fillTaskControls(); }
+      } catch (err) {
+        toast(err.message, true);
+        if (status) { status.className = "form-status sub error"; status.textContent = err.message; }
+      } finally {
+        if (form.isConnected) button.disabled = false;
+        if (status && !status.classList.contains("error")) status.textContent = "";
+      }
+    });
+
+    // ---------- Routing: #home, #dashboard, #firms, #tasks, #o:Firm, #c:ID ----------
+    function route(keepScroll) {
       const hash = decodeURIComponent(location.hash.slice(1)) || "home";
       let tab = hash;
       if (/^[oc]:/.test(hash)) { tab = "firms"; selectedKey = hash; }
-      if (!["home", "dashboard", "firms"].includes(tab)) tab = "home";
-      for (const name of ["home", "dashboard", "firms"]) {
+      if (!VIEWS.includes(tab)) tab = "home";
+      renderTaskCount();
+      for (const name of VIEWS) {
         document.getElementById("view-" + name).hidden = name !== tab;
       }
       document.querySelectorAll(".tabs a").forEach(a => {
@@ -695,8 +962,10 @@
       if (tab === "home") renderHome();
       if (tab === "dashboard") renderDashboard();
       if (tab === "firms") { renderResults(); renderDetail(); }
-      window.scrollTo(0, 0);
+      if (tab === "tasks") renderTasksView();
+      if (!keepScroll) window.scrollTo(0, 0);
     }
+    const VIEWS = ["home", "dashboard", "firms", "tasks"];
     function select(key) { location.hash = encodeURIComponent(key); }
     window.addEventListener("hashchange", route);
 
@@ -712,7 +981,7 @@
 
     // Assigning: picking a name in an Owner dropdown (or "I'll take it") saves to the sheet right away.
     document.getElementById("detail").addEventListener("change", e => {
-      const sel = e.target.closest("select.assign");
+      const sel = e.target.closest("select.assign:not(.task-assign)");
       if (!sel) return;
       sel.disabled = true;
       assign(sel.dataset.kind, sel.dataset.assign, sel.value, sel.dataset.current)
@@ -721,7 +990,9 @@
     document.getElementById("me").addEventListener("change", e => {
       me = e.target.value;
       try { localStorage.setItem("srecrm.me", me); } catch {}
-      if (me) toast(`Hi ${me}. "I'll take it" buttons now assign to you.`);
+      if (me) toast(`Hi ${me}. "I'll take it" buttons and new tasks now default to you.`);
+      if (me && taskFilter === "open") taskFilter = "mine";
+      fillTaskControls();
       route();
     });
 
@@ -840,19 +1111,33 @@
     });
 
     // ---------- Load ----------
-    fetch("/api/data")
-      .then(async r => {
+    function fetchData() {
+      return fetch("/api/data").then(async r => {
         const json = await r.json().catch(() => ({}));
         if (!r.ok) throw json;
         return json;
-      })
+      });
+    }
+    function applyData(json) {
+      data = { Tasks: [], Panels: [], Relationships: [], ...json };
+      byOrg = new Map();
+      for (const c of data.Contacts) {
+        if (!byOrg.has(c.Organization)) byOrg.set(c.Organization, []);
+        byOrg.get(c.Organization).push(c);
+      }
+    }
+    // After a change, pull fresh data from the sheet and redraw in place.
+    async function reloadData() {
+      const panel = document.getElementById("detail");
+      const scroll = panel.scrollTop;
+      applyData(await fetchData());
+      route(true);
+      panel.scrollTop = scroll;
+    }
+
+    fetchData()
       .then(json => {
-        data = json;
-        byOrg = new Map();
-        for (const c of data.Contacts) {
-          if (!byOrg.has(c.Organization)) byOrg.set(c.Organization, []);
-          byOrg.get(c.Organization).push(c);
-        }
+        applyData(json);
         document.getElementById("source").textContent = SOURCE_LABELS[data.Source.mode] || "";
         const types = (data.Org_Types && data.Org_Types.length ? data.Org_Types : [...new Set(data.Organizations.map(o => o.Type).filter(Boolean))]);
         document.getElementById("type-filter").insertAdjacentHTML("beforeend",
@@ -862,6 +1147,7 @@
           team().map(n => `<option${n === me ? " selected" : ""}>${esc(n)}</option>`).join(""));
         document.getElementById("owner-filter").insertAdjacentHTML("beforeend",
           team().map(n => `<option value="${esc(n)}">${esc(n)}'s firms &amp; contacts</option>`).join(""));
+        fillTaskControls();
         route();
       })
       .catch(err => {

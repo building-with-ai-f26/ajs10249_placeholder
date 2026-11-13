@@ -216,6 +216,119 @@ app.post("/api/relationship", (req, res) => {
   });
 });
 
+// ---------- Tasks: assigned to-dos that become an outreach log entry when done ----------
+const crypto = require("crypto");
+const today = () => new Date().toLocaleDateString("en-CA");
+const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
+
+// Run a sheet write after earlier ones, with the usual sign-in check and error handling.
+function queued(res, fallback, work) {
+  writeQueue = writeQueue.then(async () => {
+    try {
+      if (await needsSignIn()) return res.status(401).json({ error: "Sign in with Google first.", signIn: "/auth/google" });
+      await work(await getData());
+    } catch (err) {
+      sendSourceError(res, err, fallback);
+    }
+  });
+}
+
+function checkAssignee(data, name) {
+  return name && (!data.Owners.length || data.Owners.includes(name));
+}
+
+// One task, or one per person when the request lists several contacts (e.g. a whole panel).
+app.post("/api/tasks", (req, res) => {
+  if (!source.canWrite) return res.status(403).json({ error: "Tasks are off while reading the Excel copy." });
+  const body = req.body || {};
+  const base = {
+    Task: clean(body.Task, 300),
+    Assigned_To: clean(body.Assigned_To, 80),
+    Due: clean(body.Due, 10),
+    Org_Name: clean(body.Org_Name, 200),
+    Event_Name: clean(body.Event_Name, 200),
+  };
+  const ids = (Array.isArray(body.Contact_IDs) ? body.Contact_IDs : [body.Contact_ID])
+    .map(id => clean(id, 20)).filter(Boolean).slice(0, 100);
+  if (!base.Task) return res.status(400).json({ error: "Say what needs doing" });
+  if (base.Due && !isDate(base.Due)) return res.status(400).json({ error: "Due date must be YYYY-MM-DD" });
+
+  queued(res, "Could not save the task", async data => {
+    if (!checkAssignee(data, base.Assigned_To)) return res.status(400).json({ error: "Assign it to someone on the team" });
+    if (base.Org_Name && !data.Organizations.some(o => o.Org_Name === base.Org_Name)) return res.status(400).json({ error: "Unknown firm" });
+    const contacts = ids.map(id => data.Contacts.find(c => c.Contact_ID === id || (c.Alt_IDs || []).includes(id)));
+    if (contacts.some(c => !c)) return res.status(400).json({ error: "Unknown contact" });
+    const people = contacts.length ? contacts : [null];
+    const tasks = people.map(c => ({
+      ...base,
+      Task_ID: "T" + crypto.randomBytes(4).toString("hex"),
+      Created: today(),
+      Contact_ID: c ? c.Contact_ID : "",
+      Contact: c ? c.Name : "",
+      Org_Name: base.Org_Name || (c ? c.Organization : ""),
+      Status: "Open",
+      Done_Date: "",
+      Done_Note: "",
+    }));
+    await source.addTasks(tasks);
+    cache = null;
+    res.status(201).json(tasks.map(({ Contact, ...t }) => t));
+  });
+});
+
+app.post("/api/tasks/assign", (req, res) => {
+  if (!source.canWrite) return res.status(403).json({ error: "Tasks are off while reading the Excel copy." });
+  const body = req.body || {};
+  const id = clean(body.Task_ID, 20), to = clean(body.Assigned_To, 80);
+  const expected = typeof body.expected === "string" ? body.expected.trim() : undefined;
+  queued(res, "Could not reassign the task", async data => {
+    if (!checkAssignee(data, to)) return res.status(400).json({ error: "Assign it to someone on the team" });
+    await source.updateTask(id, { Assigned_To: to }, cur => {
+      if (expected !== undefined && cur.Assigned_To !== expected) {
+        throw new ConflictError(`This task was reassigned to "${cur.Assigned_To || "nobody"}" in the sheet. Refresh and try again.`);
+      }
+    });
+    cache = null;
+    res.json({ Task_ID: id, Assigned_To: to });
+  });
+});
+
+// Check a task off: mark it Done and, if it's about a person, log the outreach too.
+app.post("/api/tasks/done", (req, res) => {
+  if (!source.canWrite) return res.status(403).json({ error: "Tasks are off while reading the Excel copy." });
+  const body = req.body || {};
+  const id = clean(body.Task_ID, 20);
+  const note = clean(body.Note, 300);
+  const channel = clean(body.Channel, 40);
+  const doneBy = clean(body.Done_By, 80);
+  queued(res, "Could not complete the task", async data => {
+    const task = data.Tasks.find(t => t.Task_ID === id);
+    if (!task) return res.status(400).json({ error: "Unknown task" });
+    if (task.Status === "Done") return res.status(409).json({ error: "Already done. Refresh the page." });
+    const contact = task.Contact_ID && data.Contacts.find(c => c.Contact_ID === task.Contact_ID);
+    if (contact && !data.Channels.includes(channel)) return res.status(400).json({ error: "Pick how you reached out" });
+
+    // Log first: if marking done then fails, the task stays open and visible
+    // rather than leaving a "done" task with no record of the outreach.
+    let logged = null;
+    if (contact) {
+      logged = {
+        Date: today(),
+        Contact_ID: contact.Contact_ID,
+        Channel: channel,
+        Owner: doneBy || task.Assigned_To || "",
+        Summary: (note ? `${task.Task}: ${note}` : task.Task).slice(0, 500),
+      };
+      await source.appendOutreach(logged, contact);
+    }
+    await source.updateTask(id, { Status: "Done", Done_Date: today(), Done_Note: note }, cur => {
+      if (/^done$/i.test(cur.Status)) throw new ConflictError("Someone already checked this off. Refresh the page.");
+    });
+    cache = null;
+    res.json({ Task_ID: id, Status: "Done", Done_Date: today(), Done_Note: note, logged });
+  });
+});
+
 // Return short JSON errors (e.g. malformed request body) instead of a stack trace.
 app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.status === 400 ? "Invalid request" : "Server error" });
