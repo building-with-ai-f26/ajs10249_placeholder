@@ -4,6 +4,7 @@ const { SheetShapeError } = require("./lib/mapData");
 const { createSampleSource } = require("./lib/sources/sample");
 const { createXlsxSource } = require("./lib/sources/xlsx");
 const { createGoogleSource } = require("./lib/sources/google");
+const { createOrgProfiles } = require("./lib/orgProfile");
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = "127.0.0.1"; // local only: anyone who can reach the server acts as the signed-in user
@@ -88,6 +89,26 @@ if (source.authUrl) {
     }
   });
 }
+
+const profiles = createOrgProfiles({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  cacheFile: process.env.ORG_PROFILE_CACHE_FILE,
+});
+
+// Firm profile from the web. Only works for firms that exist in the data,
+// so the endpoint can't be used to send arbitrary prompts.
+app.get("/api/org-profile", async (req, res) => {
+  if (!profiles.enabled) return res.status(503).json({ error: "Add OPENROUTER_API_KEY to .env to look up firms." });
+  try {
+    const name = String(req.query.name || "");
+    const org = (await getData()).Organizations.find(o => o.Org_Name === name);
+    if (!org) return res.status(404).json({ error: "Unknown firm" });
+    res.json(await profiles.get(org));
+  } catch (err) {
+    console.error("Firm profile failed:", err.message);
+    res.status(502).json({ error: "Could not look up this firm right now." });
+  }
+});
 
 function clean(value, max) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";

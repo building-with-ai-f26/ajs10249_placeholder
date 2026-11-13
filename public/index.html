@@ -6,7 +6,7 @@
   <title>SRECRM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ---- Brand settings: change colors, fonts and logo here ---- */
     :root {
@@ -24,9 +24,11 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); line-height: 1.5; }
+    [hidden] { display: none !important; }
 
-    .topbar { background: var(--card); border-bottom: 4px solid var(--brand); }
-    .topbar-inner { max-width: 1080px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 14px; }
+    /* Header and tabs */
+    .topbar { background: var(--card); border-bottom: 4px solid var(--brand); position: sticky; top: 0; z-index: 5; }
+    .topbar-inner { max-width: 1120px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     /* The logo file is a square with padding; this shows just the artwork. */
     .logo {
       --h: 46px; flex: none; height: var(--h); width: calc(var(--h) * 689 / 505);
@@ -34,28 +36,103 @@
       background-size: calc(var(--h) * 2000 / 505);
       background-position: calc(var(--h) * -660 / 505) calc(var(--h) * -751 / 505);
     }
-    .app-title { font-size: 18px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+    .app-title { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
     .app-title small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+    .tabs { display: flex; gap: 4px; margin-left: 12px; }
+    .tabs a {
+      text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 8px 12px; border-radius: 8px;
+    }
+    .tabs a:hover { background: var(--page); color: var(--ink); }
+    .tabs a[aria-current="page"] { background: var(--brand-soft); color: var(--brand); }
     #source:empty { display: none; }
     #source { margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); white-space: nowrap; }
     #source::before { content: "●"; margin-right: 6px; color: #16a34a; }
+    @media (max-width: 760px) { .tabs { order: 3; width: 100%; margin-left: 0; } #source { margin-left: auto; } }
 
-    main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
-    .search-wrap { position: relative; }
+    main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 56px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(27, 23, 38, 0.05); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px;
+      border: 1px solid var(--brand); border-radius: 8px; background: var(--brand); color: #ffffff; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+    .btn:disabled { opacity: 0.6; cursor: default; }
+    .btn.ghost { background: var(--card); color: var(--brand); border-color: var(--line); }
+    .btn.ghost:hover { border-color: var(--brand); background: var(--brand-soft); }
+    .btn.small { font-size: 13px; padding: 5px 10px; }
+    .btn.locked { color: var(--muted); border-style: dashed; }
+    .kind { font-size: 11px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 0.08em; }
+    .sub { font-size: 14px; color: var(--muted); }
+    .empty { color: var(--muted); }
+    .error { color: #b91c1c; }
+    .link { all: unset; cursor: pointer; color: var(--brand); font-weight: 600; }
+    .link:hover, .link:focus-visible { text-decoration: underline; }
+    a.plain { color: var(--brand); font-weight: 600; text-decoration: none; }
+    a.plain:hover { text-decoration: underline; }
+
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: #eeecf2; color: #4a4558; }
+    .badge.good { background: #dcfce7; color: #166534; }
+    .badge.info { background: #dbeafe; color: #1e40af; }
+    .badge.warn { background: #fef3c7; color: #92400e; }
+    .badge.bad { background: #fee2e2; color: #991b1b; }
+    .badge.brand { background: var(--brand-soft); color: var(--brand); }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+    /* Home */
+    .hero { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; padding: 36px; }
+    .hero .logo { --h: 120px; }
+    .hero h1 { font-size: 34px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
+    .hero p { font-size: 17px; color: var(--muted); margin: 0 0 20px; max-width: 560px; }
+    .hero .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    @media (max-width: 640px) { .hero { grid-template-columns: 1fr; padding: 24px; } .hero .logo { --h: 80px; } .hero h1 { font-size: 26px; } }
+    .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .tile { padding: 16px 18px; }
+    .tile .num { font-size: 28px; font-weight: 800; color: var(--brand); line-height: 1.1; }
+    .tile .label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 32px 0 12px; }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+    .step { padding: 18px; }
+    .step .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+    .step h3 { margin: 0 0 4px; font-size: 16px; }
+    .step p { margin: 0; font-size: 14px; color: var(--muted); }
+    .next-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 760px) { .next-list { grid-template-columns: 1fr; } }
+    .next-item { padding: 16px 18px; border-style: dashed; }
+    .next-item h3 { margin: 0 0 4px; font-size: 15px; }
+    .next-item p { margin: 0; font-size: 14px; color: var(--muted); }
+
+    /* Dashboard */
+    .page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+    .page-head h1 { font-size: 26px; margin: 0; letter-spacing: -0.02em; }
+    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    @media (max-width: 760px) { .panels { grid-template-columns: 1fr; } }
+    .panel { padding: 18px; min-height: 170px; border-style: dashed; display: flex; flex-direction: column; }
+    .panel h3 { margin: 0 0 4px; font-size: 15px; }
+    .panel p { margin: 0; font-size: 14px; color: var(--muted); }
+    .ghost-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 8px; height: 64px; padding-top: 12px; }
+    .ghost-bars span { flex: 1; background: var(--brand-soft); border-radius: 4px 4px 0 0; }
+
+    /* Firms & outreach */
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { position: relative; flex: 1 1 320px; }
     .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
     #search {
-      width: 100%; padding: 14px 16px 14px 44px; font: inherit; font-size: 16px; color: var(--ink);
+      width: 100%; padding: 12px 16px 12px 44px; font: inherit; font-size: 16px; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-      box-shadow: 0 1px 2px rgba(27, 23, 38, 0.04);
     }
-    #search:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    #search:focus, #type-filter:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    #type-filter { font: inherit; font-size: 14px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--ink); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
     #stats { margin: 10px 2px 0; font-size: 13px; color: var(--muted); }
 
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 16px; margin-top: 14px; }
-    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(27, 23, 38, 0.05); }
-
-    #results { list-style: none; margin: 0; padding: 6px; max-height: 72vh; overflow-y: auto; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); gap: 16px; margin-top: 12px; align-items: start; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+    #results { list-style: none; margin: 0; padding: 6px; max-height: 74vh; overflow-y: auto; }
+    #results .group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 10px 10px 4px; }
     #results button {
       all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 12px; width: 100%;
       padding: 10px; border-radius: 8px; cursor: pointer;
@@ -68,32 +145,38 @@
     }
     .avatar.org { border-radius: 8px; background: var(--brand); color: #ffffff; }
     .item-text { min-width: 0; flex: 1; }
-    .item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .item-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-title { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-sub { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 
-    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: #eeecf2; color: #4a4558; }
-    .badge.good { background: #dcfce7; color: #166534; }
-    .badge.info { background: #dbeafe; color: #1e40af; }
-    .badge.warn { background: #fef3c7; color: #92400e; }
-    .badge.bad { background: #fee2e2; color: #991b1b; }
-    .badge.brand { background: var(--brand-soft); color: var(--brand); }
-    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-
-    #detail { padding: 20px; min-height: 240px; }
-    .kind { font-size: 11px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 0.08em; }
-    .sub { font-size: 14px; color: var(--muted); }
-    #detail h2 { font-size: 22px; margin: 2px 0 2px; letter-spacing: -0.01em; }
+    #detail { padding: 22px; min-height: 260px; position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; }
+    #detail h2 { font-size: 24px; margin: 2px 0 2px; letter-spacing: -0.01em; }
+    #detail h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 24px 0 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .answer { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .answer .q { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .answer .a { font-size: 18px; font-weight: 700; }
+    .answer .a.yes { color: #166534; }
+    .answer .a.no { color: var(--muted); }
+    .answer .note { font-size: 12px; color: var(--muted); }
+    .about p { margin: 0 0 8px; }
+    .about ul { margin: 0 0 8px; padding-left: 18px; }
+    .about li { margin: 2px 0; font-size: 14px; }
+    .ai-note { font-size: 12px; color: var(--muted); }
+    .skeleton { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #efecf4, #f8f6fb, #efecf4); background-size: 200% 100%; animation: shimmer 1.2s infinite; margin: 8px 0; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    .people { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .person { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+    .person .avatar { grid-row: span 2; }
+    .person .who { min-width: 0; }
+    .person .actions { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .lock-note { grid-column: 2; font-size: 13px; color: var(--muted); background: var(--page); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
     dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 18px 0 0; font-size: 14px; }
     dt { color: var(--muted); }
     dd { margin: 0; }
-    .empty { color: var(--muted); }
-    #detail h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 24px 0 10px; padding-top: 16px; border-top: 1px solid var(--line); }
-    .link { all: unset; cursor: pointer; color: var(--brand); font-weight: 600; }
-    .link:hover, .link:focus-visible { text-decoration: underline; }
     .history { list-style: none; margin: 0; padding: 0; }
     .history li { padding: 10px 0 10px 14px; border-left: 2px solid var(--brand-soft); position: relative; }
     .history li::before { content: ""; position: absolute; left: -5px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
-
     .log-form { display: grid; gap: 10px; }
     .log-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 500; color: var(--muted); }
     .log-form input, .log-form select, .log-form textarea {
@@ -103,68 +186,146 @@
     .log-form .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     @media (max-width: 640px) { .log-form .row { grid-template-columns: 1fr; } }
     .log-form .row-end { display: flex; align-items: center; gap: 12px; }
-    .btn {
-      font: inherit; font-weight: 600; padding: 9px 16px; border: 0; border-radius: 8px; background: var(--brand); color: #ffffff; cursor: pointer;
-    }
-    .btn:hover { background: var(--brand-dark); }
-    .btn:disabled { opacity: 0.6; cursor: default; }
-    .error { color: #b91c1c; }
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="logo" role="img" aria-label="Stern Real Estate Club"></div>
-      <h1 class="app-title">Sponsorship CRM<small>Stern Real Estate Club</small></h1>
+      <a href="#home" class="logo" aria-label="Stern Real Estate Club home"></a>
+      <div class="app-title">Sponsorship CRM<small>Stern Real Estate Club</small></div>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#home" data-tab="home">Home</a>
+        <a href="#dashboard" data-tab="dashboard">Dashboard</a>
+        <a href="#firms" data-tab="firms">Firms &amp; Outreach</a>
+      </nav>
       <span id="source"></span>
     </div>
   </header>
+
   <main>
-    <div class="search-wrap">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="search" type="search" placeholder="Search a firm, contact or title" autocomplete="off" aria-label="Search a firm, contact or title">
-    </div>
-    <p id="stats"></p>
-    <div class="layout">
-      <ul id="results" class="card" aria-label="Results"></ul>
-      <section id="detail" class="card" aria-live="polite"><p class="empty">Select a contact or firm to see details.</p></section>
-    </div>
+    <p id="load-error" class="card" style="padding:16px" hidden></p>
+
+    <!-- Home -->
+    <section id="view-home" hidden>
+      <div class="card hero">
+        <div class="logo" role="img" aria-label="Stern Real Estate Club"></div>
+        <div>
+          <h1>Find a firm, see who we know, reach out in a minute.</h1>
+          <p>One place for SREC's sponsor pipeline: every firm, who's approved to contact, our sponsorship history, and every outreach — straight from the club's Google Sheet.</p>
+          <div class="actions">
+            <a class="btn" href="#firms">Browse firms</a>
+            <a class="btn ghost" href="#dashboard">Dashboard</a>
+          </div>
+        </div>
+      </div>
+      <div class="tiles" id="home-tiles"></div>
+
+      <h2 class="section-title">How it works</h2>
+      <div class="steps">
+        <div class="card step"><div class="n">1</div><h3>Find a firm</h3><p>Search or filter by type: developers, lenders, REITs and more. Each firm has a short profile pulled from the web.</p></div>
+        <div class="card step"><div class="n">2</div><h3>See who we know</h3><p>Is the firm a sponsor? Who there is approved to contact? Who owns the relationship, and when did we last reach out?</p></div>
+        <div class="card step"><div class="n">3</div><h3>Reach out &amp; log it</h3><p>Connect on LinkedIn, then log the outreach. It lands in the shared sheet so the next person sees it.</p></div>
+      </div>
+
+      <h2 class="section-title">Coming next — tell us what matters</h2>
+      <div class="next-list">
+        <div class="card next-item"><h3>"Need help where to start?"</h3><p>Ask in plain English — "I'm interested in developers, who's approved?" — and get a shortlist.</p></div>
+        <div class="card next-item"><h3>Email, shared through Google</h3><p>Emails stay hidden unless the contact list is shared with you in Google. Sign in with NYU to unlock.</p></div>
+        <div class="card next-item"><h3>Live dashboard</h3><p>Pipeline by stage, follow-ups due, outreach by team member, and dollars vs. this year's goal.</p></div>
+        <div class="card next-item"><h3>Other verticals</h3><p>Speaker events, treks and careers sharing one contact history, so nobody double-reaches the same person.</p></div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="view-dashboard" hidden>
+      <div class="page-head"><h1>Dashboard</h1><span class="badge warn">Preview</span></div>
+      <p class="sub" style="margin:0">A first look. Tell us what you'd want to see here.</p>
+      <div class="tiles" id="dash-tiles"></div>
+      <div class="panels">
+        <div class="card panel"><h3>Pipeline by stage</h3><p>Prospect → In discussion → Committed → Current sponsor, with dollars at each stage.</p><div class="ghost-bars"><span style="height:90%"></span><span style="height:65%"></span><span style="height:40%"></span><span style="height:25%"></span></div></div>
+        <div class="card panel"><h3>Sponsorship $ vs. goal</h3><p>Committed and received this academic year against the club's target.</p><div class="ghost-bars"><span style="height:55%"></span><span style="height:100%;background:#eeecf2"></span></div></div>
+        <div class="card panel"><h3>Follow-ups due</h3><p>Next steps coming up this week, by owner — so nothing goes cold.</p></div>
+        <div class="card panel"><h3>Outreach by team member</h3><p>Who's reaching out, how often, and through which channel.</p><div class="ghost-bars"><span style="height:70%"></span><span style="height:45%"></span><span style="height:85%"></span><span style="height:30%"></span><span style="height:55%"></span></div></div>
+      </div>
+    </section>
+
+    <!-- Firms & Outreach -->
+    <section id="view-firms" hidden>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="search" type="search" placeholder="Search a firm, person or title" autocomplete="off" aria-label="Search a firm, person or title">
+        </div>
+        <select id="type-filter" aria-label="Firm type"><option value="">All firm types</option></select>
+      </div>
+      <div class="chips" role="group" aria-label="Filter firms">
+        <button type="button" class="chip" data-filter="all" aria-pressed="true">All firms</button>
+        <button type="button" class="chip" data-filter="sponsors" aria-pressed="false">Sponsors</button>
+        <button type="button" class="chip" data-filter="approved" aria-pressed="false">Has approved contacts</button>
+      </div>
+      <p id="stats"></p>
+      <div class="layout">
+        <ul id="results" class="card" aria-label="Firms"></ul>
+        <section id="detail" class="card" aria-live="polite"><p class="empty">Pick a firm to see what they do, whether they sponsor us, and who we can reach out to.</p></section>
+      </div>
+    </section>
   </main>
 
   <script>
-    let data = { Organizations: [], Contacts: [], Outreach_Log: [], Channels: [], Owners: [], Source: {} };
+    let data = { Organizations: [], Contacts: [], Outreach_Log: [], Channels: [], Owners: [], Org_Types: [], Source: {} };
     let selectedKey = null;
+    let firmFilter = "all";
+    let byOrg = new Map();             // firm name -> its contacts
+    const profileCache = new Map();    // firm name -> web profile (or a pending promise)
+    const SOURCE_LABELS = { sample: "Sample data", xlsx: "Excel copy (read-only)", google: "Live Google Sheet" };
 
     function esc(value) {
       return String(value == null ? "" : value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function orDash(v) { return v ? v : "—"; }
+    function joinSub(...parts) { return parts.filter(Boolean).join(" · "); }
+    function initials(name) {
+      return String(name).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    }
+    function orgByName(name) { return data.Organizations.find(o => o.Org_Name === name) || null; }
+    function contactsOf(org) { return byOrg.get(org.Org_Name) || []; }
+
+    // Values from the real sheet (Yes/No, "Current sponsor") and the sample data both work.
+    const BADGE_TONES = {
+      "current sponsor": "good", "active sponsor": "good", "prospect": "info", "in discussion": "warn",
+      "in negotiation": "warn", "declined": "bad", "do not contact": "bad",
+      "approved": "good", "yes": "good", "pending": "warn", "no": "bad", "active": "good", "warm": "warn",
+    };
+    function badge(text, tone) {
+      if (!text) return "";
+      return `<span class="badge ${tone || BADGE_TONES[String(text).toLowerCase()] || ""}">${esc(text)}</span>`;
+    }
+    function isApproved(c) { return /^(yes|approved)$/i.test(c.Approval || ""); }
+    function isSponsor(o) { return /^(current|active) sponsor$/i.test(o.Sponsor_Status || ""); }
+    function isAlum(c) { return /^yes$/i.test(c.Stern_Alum || ""); }
+    function approvalBadge(c) {
+      if (!c.Approval) return "";
+      if (isApproved(c)) return badge("Approved", "good");
+      if (/^no$/i.test(c.Approval)) return badge("Not approved", "bad");
+      return badge(c.Approval);
     }
 
-    function orgByName(name) {
-      return data.Organizations.find(o => o.Org_Name === name) || null;
-    }
-
-    // Outreach_Log rows for the given contact IDs, newest first.
+    // ---------- Outreach history ----------
     function historyFor(contactIds) {
-      const rows = data.Outreach_Log.filter(r => contactIds.includes(r.Contact_ID));
-      return rows.sort((a, b) => String(b.Date).localeCompare(String(a.Date)));
+      return data.Outreach_Log.filter(r => contactIds.includes(r.Contact_ID))
+        .sort((a, b) => String(b.Date).localeCompare(String(a.Date)));
     }
-
-    function lastTouch(contactIds) {
-      return historyFor(contactIds)[0] || null;
-    }
-
     function contactName(id) {
       const c = data.Contacts.find(x => x.Contact_ID === id);
       return c ? c.Name : id;
     }
-
+    function touchText(row) {
+      return row ? `${row.Date} · ${row.Channel} · ${row.Owner}: ${row.Summary}` : "No outreach logged yet";
+    }
     function renderHistory(rows, showContact) {
-      if (!rows.length) return '<h3>Outreach history</h3><p class="empty">No outreach logged.</p>';
+      if (!rows.length) return '<h3>Outreach history</h3><p class="empty">No outreach logged yet.</p>';
       return `<h3>Outreach history (${rows.length})</h3><ul class="history">` + rows.map(r => `
         <li>
           <div class="sub">${esc(r.Date)} · ${esc(r.Channel)} · ${esc(r.Owner)}${showContact ? " · " + esc(contactName(r.Contact_ID)) : ""}</div>
@@ -172,94 +333,185 @@
         </li>`).join("") + "</ul>";
     }
 
-    function touchText(row) {
-      if (!row) return "No outreach logged";
-      return `${row.Date} · ${row.Channel} · ${row.Owner}: ${row.Summary}`;
+    // ---------- Home and dashboard ----------
+    function tile(num, label) {
+      return `<div class="card tile"><div class="num">${esc(num)}</div><div class="label">${esc(label)}</div></div>`;
+    }
+    function renderHome() {
+      document.getElementById("home-tiles").innerHTML =
+        tile(data.Organizations.length, "firms tracked") +
+        tile(data.Contacts.length, "contacts") +
+        tile(data.Contacts.filter(isApproved).length, "approved to contact") +
+        tile(data.Organizations.filter(isSponsor).length, "current sponsors");
+    }
+    function renderDashboard() {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const pipeline = data.Organizations.filter(o => /prospect|discussion|negotiation/i.test(o.Sponsor_Status || "")).length;
+      document.getElementById("dash-tiles").innerHTML =
+        tile(data.Organizations.filter(isSponsor).length, "current sponsors") +
+        tile(pipeline, "prospects & in discussion") +
+        tile(data.Contacts.filter(isApproved).length, "approved contacts") +
+        tile(data.Outreach_Log.filter(r => r.Date >= since).length, "outreach, last 30 days");
     }
 
-    function orDash(v) { return v ? v : "—"; }
-
-    const BADGE_TONES = {
-      "active sponsor": "good", "yes": "good", "prospect": "info", "in negotiation": "warn",
-      "declined": "bad", "no": "bad", "approved": "good", "pending": "warn", "do not contact": "bad",
-    };
-    function badge(text, prefix) {
-      if (!text) return "";
-      const tone = BADGE_TONES[String(text).toLowerCase()] || "";
-      return `<span class="badge ${tone}">${esc(prefix ? prefix + text : text)}</span>`;
+    // ---------- Firms list ----------
+    function firmMatches(o, q) {
+      if (document.getElementById("type-filter").value && o.Type !== document.getElementById("type-filter").value) return false;
+      const people = contactsOf(o);
+      if (firmFilter === "sponsors" && !isSponsor(o)) return false;
+      if (firmFilter === "approved" && !people.some(isApproved)) return false;
+      if (!q) return true;
+      return `${o.Org_Name} ${o.Type} ${o.HQ_City}`.toLowerCase().includes(q) ||
+        people.some(c => `${c.Name} ${c.Title}`.toLowerCase().includes(q));
     }
 
-    function initials(name) {
-      return String(name).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    function firmItem(o) {
+      const people = contactsOf(o);
+      const approved = people.filter(isApproved).length;
+      return `<li><button type="button" data-key="o:${esc(o.Org_Name)}" class="${"o:" + o.Org_Name === selectedKey ? "selected" : ""}">
+        <span class="avatar org" aria-hidden="true">${esc(initials(o.Org_Name))}</span>
+        <span class="item-text">
+          <span class="item-title">${esc(o.Org_Name)}</span>
+          <span class="item-sub">${esc(joinSub(o.Type, o.HQ_City, `${people.length} contact${people.length === 1 ? "" : "s"}`))}</span>
+        </span>
+        <span class="item-badges">
+          ${isSponsor(o) ? badge("Sponsor", "good") : badge(o.Sponsor_Status)}
+          ${approved ? badge(`${approved} approved`, "brand") : ""}
+        </span>
+      </button></li>`;
     }
 
-    function isApproved(c) { return /^(yes|approved)$/i.test(c.Approval || ""); }
-    function approvalBadge(c) {
-      if (!c.Approval) return "";
-      if (isApproved(c)) return badge("Approved");
-      if (/^no$/i.test(c.Approval)) return badge("Not approved").replace("badge ", "badge bad ");
-      return badge(c.Approval);
-    }
-
-    function joinSub(...parts) { return parts.filter(Boolean).join(" · "); }
-
-    function buildItems(query) {
-      const q = query.trim().toLowerCase();
-      const items = [];
-      for (const c of data.Contacts) {
-        const hay = `${c.Name} ${c.Title} ${c.Organization}`.toLowerCase();
-        if (!q || hay.includes(q)) {
-          items.push({ key: "c:" + c.Contact_ID, kind: "Contact", title: c.Name, sub: joinSub(c.Title, c.Organization),
-            badge: isApproved(c) ? badge("Approved") : "" });
-        }
-      }
-      for (const o of data.Organizations) {
-        if (!q || o.Org_Name.toLowerCase().includes(q)) {
-          items.push({ key: "o:" + o.Org_Name, kind: "Organization", title: o.Org_Name,
-            sub: joinSub("Firm", o.Current_Tier), badge: badge(o.Sponsor_Status) });
-        }
-      }
-      return items;
+    function personItem(c) {
+      return `<li><button type="button" data-key="c:${esc(c.Contact_ID)}" class="${"c:" + c.Contact_ID === selectedKey ? "selected" : ""}">
+        <span class="avatar" aria-hidden="true">${esc(initials(c.Name))}</span>
+        <span class="item-text">
+          <span class="item-title">${esc(c.Name)}</span>
+          <span class="item-sub">${esc(joinSub(c.Title, c.Organization))}</span>
+        </span>
+        <span class="item-badges">${isApproved(c) ? badge("Approved", "good") : ""}</span>
+      </button></li>`;
     }
 
     function renderResults() {
-      const items = buildItems(document.getElementById("search").value);
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      const firms = data.Organizations.filter(o => firmMatches(o, q))
+        .sort((a, b) => a.Org_Name.localeCompare(b.Org_Name));
+      // When searching, also list matching people (including anyone without a firm).
+      const people = q && firmFilter === "all" && !document.getElementById("type-filter").value
+        ? data.Contacts.filter(c => `${c.Name} ${c.Title}`.toLowerCase().includes(q)).slice(0, 25)
+        : [];
       const list = document.getElementById("results");
-      if (!items.length) {
-        list.innerHTML = '<li><p class="empty" style="padding:10px 12px;margin:0">No matches.</p></li>';
-        return;
-      }
-      list.innerHTML = items.map(it => `
-        <li><button type="button" data-key="${esc(it.key)}" class="${it.key === selectedKey ? "selected" : ""}">
-          <span class="avatar ${it.kind === "Organization" ? "org" : ""}" aria-hidden="true">${esc(initials(it.title))}</span>
-          <span class="item-text">
-            <span class="item-title" style="display:block">${esc(it.title)}</span>
-            <span class="item-sub" style="display:block">${esc(it.sub)}</span>
-          </span>
-          ${it.badge}
-        </button></li>`).join("");
+      let html = "";
+      if (people.length) html += `<li class="group">Firms (${firms.length})</li>`;
+      html += firms.map(firmItem).join("");
+      if (people.length) html += `<li class="group">People (${people.length})</li>` + people.map(personItem).join("");
+      list.innerHTML = html || '<li><p class="empty" style="padding:10px 12px;margin:0">No matches.</p></li>';
+      document.getElementById("stats").textContent =
+        `Showing ${firms.length} of ${data.Organizations.length} firms · ${data.Contacts.filter(isApproved).length} approved contacts overall`;
     }
 
-    const SOURCE_LABELS = { sample: "Sample data", xlsx: "Excel copy (read-only)", google: "Live Google Sheet" };
+    // ---------- Firm detail ----------
+    function sponsorAnswer(o) {
+      if (isSponsor(o)) return `<div class="a yes">Yes</div><div class="note">${esc(joinSub(o.Sponsor_Status, o.Current_Tier))}</div>`;
+      if (o.Sponsor_Status) return `<div class="a">${esc(o.Sponsor_Status)}</div><div class="note">${esc(orDash(o.Outreach_Stage))}</div>`;
+      return '<div class="a no">Not yet</div><div class="note">No sponsor status in the sheet</div>';
+    }
 
-    // Form to log an outreach. One contact: fixed. Several (firm view): pick one.
-    function renderLogForm(contacts, defaultOwner) {
-      if (!contacts.length) return "";
+    function linkedInHref(c, org) {
+      return c.LinkedIn || "https://www.linkedin.com/search/results/people/?keywords=" +
+        encodeURIComponent(`${c.Name} ${org ? org.Org_Name : c.Organization}`.trim());
+    }
+
+    function personCard(c, org) {
+      return `<li class="person">
+        <span class="avatar" aria-hidden="true">${esc(initials(c.Name))}</span>
+        <div class="who">
+          <button type="button" class="link" data-key="c:${esc(c.Contact_ID)}">${esc(c.Name)}</button>
+          <span class="sub"> · ${esc(orDash(c.Title))}</span>
+        </div>
+        <div class="badges" style="margin:0;grid-column:2">
+          ${approvalBadge(c)} ${isAlum(c) ? badge("Stern alum", "brand") : ""} ${badge(c.Status)}
+          ${c.Owner ? `<span class="sub" style="font-size:12px">Owner: ${esc(c.Owner)}</span>` : ""}
+        </div>
+        <div class="actions">${contactActions(c, org)}</div>
+      </li>`;
+    }
+
+    function contactActions(c, org) {
+      return `
+        <a class="btn ghost small" href="${esc(linkedInHref(c, org))}" target="_blank" rel="noopener noreferrer">LinkedIn${c.LinkedIn ? "" : " search"} ↗</a>
+        <button type="button" class="btn ghost small locked" data-lock="${esc(c.Contact_ID)}">🔒 Email</button>
+        <button type="button" class="btn ghost small" data-key="c:${esc(c.Contact_ID)}">Log outreach</button>`;
+    }
+
+    function lockNote(c) {
+      return c.Has_Email
+        ? "Emails stay in the club's Google Sheet. Coming next: sign in with your NYU Google account, and if the contact list is shared with you, the email appears here."
+        : "No email on file. Try LinkedIn, or ask the owner for a warm intro.";
+    }
+
+    function renderAbout(o) {
+      const p = profileCache.get(o.Org_Name);
+      if (!p || p instanceof Promise) {
+        return '<div class="skeleton" style="width:95%"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div><p class="ai-note">Looking this firm up on the web…</p>';
+      }
+      if (p.error) return `<p class="empty">${esc(p.error)}</p>`;
+      if (!p.found) return `<p class="empty">Couldn't confidently identify this firm on the web.</p>${p.summary ? `<p class="ai-note">${esc(p.summary)}</p>` : ""}`;
+      return `
+        <p>${esc(p.summary)}</p>
+        ${p.what_they_do.length ? `<ul>${p.what_they_do.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        <p class="sub" style="font-size:13px">${esc(joinSub(p.hq && "HQ: " + p.hq, p.size))}</p>
+        ${p.website ? `<p style="margin:0 0 6px"><a class="plain" href="${esc(p.website)}" target="_blank" rel="noopener noreferrer">${esc(p.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a></p>` : ""}
+        <p class="ai-note">AI summary from public web sources, ${esc(p.fetched)}. Double-check before outreach.</p>`;
+    }
+
+    function loadProfile(o) {
+      if (profileCache.has(o.Org_Name)) return;
+      const pending = fetch("/api/org-profile?name=" + encodeURIComponent(o.Org_Name))
+        .then(async r => { const j = await r.json().catch(() => ({})); return r.ok ? j : { error: j.error || "Profile unavailable." }; })
+        .catch(() => ({ error: "Profile unavailable." }))
+        .then(p => {
+          profileCache.set(o.Org_Name, p);
+          const box = document.getElementById("about");
+          if (box && box.dataset.org === o.Org_Name) box.innerHTML = renderAbout(o);
+        });
+      profileCache.set(o.Org_Name, pending);
+    }
+
+    function renderOrg(o) {
+      const people = contactsOf(o).slice().sort((a, b) => (isApproved(b) - isApproved(a)) || a.Name.localeCompare(b.Name));
+      const approved = people.filter(isApproved).length;
+      loadProfile(o);
+      return `
+        <div class="kind">Firm</div>
+        <h2>${esc(o.Org_Name)}</h2>
+        <div class="sub">${esc(joinSub(o.Type, o.HQ_City))}${o.Website ? ` · <a class="plain" href="${esc(o.Website)}" target="_blank" rel="noopener noreferrer">website ↗</a>` : ""}</div>
+        <div class="answers">
+          <div class="answer"><div class="q">Sponsor?</div>${sponsorAnswer(o)}</div>
+          <div class="answer"><div class="q">Approved to contact?</div>
+            ${approved ? `<div class="a yes">${approved} of ${people.length}</div><div class="note">contacts approved</div>`
+                       : `<div class="a no">None yet</div><div class="note">${people.length} contact${people.length === 1 ? "" : "s"} on file</div>`}
+          </div>
+        </div>
+        <h3>What they do</h3>
+        <div class="about" id="about" data-org="${esc(o.Org_Name)}">${renderAbout(o)}</div>
+        <h3>People (${people.length})</h3>
+        ${people.length ? `<ul class="people">${people.map(c => personCard(c, o)).join("")}</ul>` : '<p class="empty">No contacts at this firm yet.</p>'}
+        ${renderHistory(historyFor(people.map(c => c.Contact_ID)), true)}`;
+    }
+
+    // ---------- Contact detail ----------
+    function renderLogForm(c) {
       if (!data.Source.canWrite) return '<h3>Log outreach</h3><p class="empty">Logging is off while reading the Excel copy.</p>';
       const today = new Date().toLocaleDateString("en-CA");
-      const who = contacts.length === 1
-        ? `<input type="hidden" name="Contact_ID" value="${esc(contacts[0].Contact_ID)}">`
-        : `<label>Contact<select name="Contact_ID" required>${contacts.map(c =>
-            `<option value="${esc(c.Contact_ID)}">${esc(c.Name)}</option>`).join("")}</select></label>`;
       return `
         <h3>Log outreach</h3>
         <form id="log-form" class="log-form">
-          ${who}
+          <input type="hidden" name="Contact_ID" value="${esc(c.Contact_ID)}">
           <div class="row">
             <label>Date<input type="date" name="Date" value="${esc(today)}" required></label>
-            <label>Channel<select name="Channel" required>${data.Channels.map(ch =>
-              `<option>${esc(ch)}</option>`).join("")}</select></label>
-            <label>Owner<input type="text" name="Owner" value="${esc(defaultOwner)}" maxlength="80" list="owners" required></label>
+            <label>Channel<select name="Channel" required>${data.Channels.map(ch => `<option>${esc(ch)}</option>`).join("")}</select></label>
+            <label>Owner<input type="text" name="Owner" value="${esc(c.Owner)}" maxlength="80" list="owners" required></label>
             <datalist id="owners">${data.Owners.map(o => `<option value="${esc(o)}">`).join("")}</datalist>
           </div>
           <label>Summary<textarea name="Summary" rows="2" maxlength="500" required></textarea></label>
@@ -272,81 +524,82 @@
 
     function renderContact(c) {
       const org = orgByName(c.Organization);
+      const last = historyFor([c.Contact_ID])[0];
       return `
-        <div class="kind">Contact</div>
+        ${org ? `<button type="button" class="link" data-key="o:${esc(org.Org_Name)}" style="font-size:13px">← ${esc(org.Org_Name)}</button>` : ""}
+        <div class="kind" style="margin-top:8px">Contact</div>
         <h2>${esc(c.Name)}</h2>
-        <div class="sub">${esc(c.Title)}${org ? ` at <button type="button" class="link" data-key="o:${esc(org.Org_Name)}">${esc(org.Org_Name)}</button>` : c.Organization ? ", " + esc(c.Organization) : ""}</div>
-        <div class="badges">
-          ${approvalBadge(c)}
-          ${badge(c.Status)}
-          ${org ? badge(org.Sponsor_Status) : ""}
-        </div>
+        <div class="sub">${esc(joinSub(c.Title, c.Organization))}</div>
+        <div class="badges">${approvalBadge(c)} ${isAlum(c) ? badge("Stern alum", "brand") : ""} ${badge(c.Status)} ${org && isSponsor(org) ? badge("Firm is a sponsor", "good") : ""}</div>
+        <div class="badges" style="margin-top:14px">${contactActions(c, org).replace(/<button[^>]*data-key[^>]*>Log outreach<\/button>/, "")}</div>
         <dl>
           <dt>Owner</dt><dd>${esc(orDash(c.Owner))}</dd>
-          <dt>Last touch</dt><dd>${esc(touchText(lastTouch([c.Contact_ID])))}</dd>
-          <dt>Firm tier</dt><dd>${esc(orDash(org && org.Current_Tier))}</dd>
+          <dt>Last touch</dt><dd>${esc(touchText(last))}</dd>
         </dl>
-        ${renderLogForm([c], c.Owner)}
+        ${renderLogForm(c)}
         ${renderHistory(historyFor([c.Contact_ID]), false)}`;
-    }
-
-    function renderOrg(o) {
-      const contacts = data.Contacts.filter(c => c.Organization === o.Org_Name);
-      const owners = [...new Set(contacts.map(c => c.Owner).filter(Boolean))];
-      const names = contacts.map(c =>
-        `<button type="button" class="link" data-key="c:${esc(c.Contact_ID)}">${esc(c.Name)}</button>${isApproved(c) ? " ✓" : ""}`);
-      return `
-        <div class="kind">Organization</div>
-        <h2>${esc(o.Org_Name)}</h2>
-        <div class="badges">
-          ${badge(o.Sponsor_Status)}
-          ${o.Current_Tier ? `<span class="badge brand">${esc(o.Current_Tier)}</span>` : ""}
-          ${o.Outreach_Stage ? `<span class="badge">${esc(o.Outreach_Stage)}</span>` : ""}
-        </div>
-        <dl>
-          <dt>Owner</dt><dd>${esc(owners.length ? owners.join(", ") : "—")}</dd>
-          <dt>Last touch</dt><dd>${esc(touchText(lastTouch(contacts.map(c => c.Contact_ID))))}</dd>
-          <dt>Contacts (${contacts.length})</dt><dd>${names.length ? names.join(", ") : "—"}</dd>
-        </dl>
-        ${renderLogForm(contacts, owners[0] || "")}
-        ${renderHistory(historyFor(contacts.map(c => c.Contact_ID)), true)}`;
     }
 
     function renderDetail() {
       const panel = document.getElementById("detail");
-      if (!selectedKey) {
-        panel.innerHTML = '<p class="empty">Select a contact or firm to see details.</p>';
-        return;
-      }
+      if (!selectedKey) return;
       const id = selectedKey.slice(2);
       if (selectedKey.startsWith("c:")) {
         const c = data.Contacts.find(x => x.Contact_ID === id);
-        panel.innerHTML = c ? renderContact(c) : "";
+        panel.innerHTML = c ? renderContact(c) : '<p class="empty">Contact not found.</p>';
       } else {
         const o = orgByName(id);
-        panel.innerHTML = o ? renderOrg(o) : "";
+        panel.innerHTML = o ? renderOrg(o) : '<p class="empty">Firm not found.</p>';
       }
+      panel.scrollTop = 0;
     }
 
+    // ---------- Routing: #home, #dashboard, #firms, #o:Firm, #c:ID ----------
+    function route() {
+      const hash = decodeURIComponent(location.hash.slice(1)) || "home";
+      let tab = hash;
+      if (/^[oc]:/.test(hash)) { tab = "firms"; selectedKey = hash; }
+      if (!["home", "dashboard", "firms"].includes(tab)) tab = "home";
+      for (const name of ["home", "dashboard", "firms"]) {
+        document.getElementById("view-" + name).hidden = name !== tab;
+      }
+      document.querySelectorAll(".tabs a").forEach(a => {
+        if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      });
+      if (tab === "home") renderHome();
+      if (tab === "dashboard") renderDashboard();
+      if (tab === "firms") { renderResults(); renderDetail(); }
+      window.scrollTo(0, 0);
+    }
+    function select(key) { location.hash = encodeURIComponent(key); }
+    window.addEventListener("hashchange", route);
+
+    // ---------- Events ----------
     document.getElementById("search").addEventListener("input", renderResults);
+    document.getElementById("type-filter").addEventListener("change", renderResults);
+    document.querySelector(".chips").addEventListener("click", e => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      firmFilter = chip.dataset.filter;
+      document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === chip)));
+      renderResults();
+    });
     document.getElementById("results").addEventListener("click", e => {
       const btn = e.target.closest("button[data-key]");
-      if (!btn) return;
-      select(btn.dataset.key);
+      if (btn) select(btn.dataset.key);
     });
-
-    function select(key) {
-      selectedKey = key;
-      history.replaceState(null, "", "#" + encodeURIComponent(key));
-      renderResults();
-      renderDetail();
-    }
-
-    // Firm and contact names inside the detail panel jump to that record.
     document.getElementById("detail").addEventListener("click", e => {
-      const link = e.target.closest("button.link[data-key]");
-      if (!link) return;
-      select(link.dataset.key);
+      const lock = e.target.closest("button[data-lock]");
+      if (lock) {
+        const c = data.Contacts.find(x => x.Contact_ID === lock.dataset.lock);
+        const holder = lock.closest(".person") || lock.closest(".badges");
+        const existing = holder.querySelector(".lock-note");
+        if (existing) { existing.remove(); return; }
+        holder.insertAdjacentHTML("beforeend", `<div class="lock-note">${esc(lockNote(c))}</div>`);
+        return;
+      }
+      const btn = e.target.closest("button[data-key]");
+      if (btn) select(btn.dataset.key);
     });
 
     document.getElementById("detail").addEventListener("submit", async e => {
@@ -370,7 +623,7 @@
         data.Outreach_Log.push(json);
         renderDetail();
         const fresh = document.getElementById("log-status");
-        if (fresh) fresh.textContent = "Logged.";
+        if (fresh) fresh.textContent = "Logged to the sheet.";
       } catch (err) {
         status.className = "sub error";
         status.textContent = err.message;
@@ -378,6 +631,7 @@
       }
     });
 
+    // ---------- Load ----------
     fetch("/api/data")
       .then(async r => {
         const json = await r.json().catch(() => ({}));
@@ -386,19 +640,23 @@
       })
       .then(json => {
         data = json;
+        byOrg = new Map();
+        for (const c of data.Contacts) {
+          if (!byOrg.has(c.Organization)) byOrg.set(c.Organization, []);
+          byOrg.get(c.Organization).push(c);
+        }
         document.getElementById("source").textContent = SOURCE_LABELS[data.Source.mode] || "";
-        const approved = data.Contacts.filter(isApproved).length;
-        const active = data.Organizations.filter(o => o.Sponsor_Status === "Active Sponsor").length;
-        document.getElementById("stats").textContent =
-          `${data.Organizations.length} firms · ${data.Contacts.length} contacts · ${approved} approved to contact · ${active} active sponsors`;
-        const fromLink = decodeURIComponent(location.hash.slice(1));
-        if (fromLink) select(fromLink); else renderResults();
+        const types = (data.Org_Types && data.Org_Types.length ? data.Org_Types : [...new Set(data.Organizations.map(o => o.Type).filter(Boolean))]);
+        document.getElementById("type-filter").insertAdjacentHTML("beforeend",
+          types.map(t => `<option>${esc(t)}</option>`).join(""));
+        route();
       })
       .catch(err => {
+        const box = document.getElementById("load-error");
         const msg = (err && err.error) || "Could not load data.";
-        const link = err && err.signIn ? ` <a href="${esc(err.signIn)}">Sign in with Google</a>` : "";
-        document.getElementById("results").innerHTML =
-          `<li><p class="empty" style="padding:10px 12px;margin:0">${esc(msg)}${link}</p></li>`;
+        const link = err && err.signIn ? ` <a class="btn" href="${esc(err.signIn)}">Sign in with Google</a>` : "";
+        box.innerHTML = `${esc(msg)}${link}`;
+        box.hidden = false;
       });
   </script>
 </body>
