@@ -122,8 +122,8 @@
       width: 100%; padding: 12px 16px 12px 44px; font: inherit; font-size: 16px; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
     }
-    #search:focus, #type-filter:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-    #type-filter { font: inherit; font-size: 14px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--ink); }
+    #search:focus, #type-filter:focus, #owner-filter:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    #type-filter, #owner-filter { font: inherit; font-size: 14px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--ink); }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
     .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; }
     .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
@@ -186,6 +186,17 @@
     .log-form .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     @media (max-width: 640px) { .log-form .row { grid-template-columns: 1fr; } }
     .log-form .row-end { display: flex; align-items: center; gap: 12px; }
+    .owner-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--muted); font-weight: 600; flex-wrap: wrap; }
+    select.assign { font: inherit; font-size: 13px; color: var(--ink); padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: #ffffff; max-width: 100%; }
+    select.assign:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    select.assign.unassigned { color: var(--muted); border-style: dashed; }
+    .knows { font-size: 12px; color: var(--muted); }
+    .rel-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+    .rel-list li { font-size: 14px; }
+    .log-form .row.rel { grid-template-columns: 1fr 1fr 2fr; }
+    @media (max-width: 640px) { .log-form .row.rel { grid-template-columns: 1fr; } }
+    #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #ffffff; padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100% - 32px); z-index: 50; }
+    #toast.error { background: #b91c1c; }
   </style>
 </head>
 <body>
@@ -257,6 +268,7 @@
           <input id="search" type="search" placeholder="Search a firm, person or title" autocomplete="off" aria-label="Search a firm, person or title">
         </div>
         <select id="type-filter" aria-label="Firm type"><option value="">All firm types</option></select>
+        <select id="owner-filter" aria-label="Assigned to"><option value="">Anyone's firms</option><option value="__none__">Unassigned firms</option></select>
       </div>
       <div class="chips" role="group" aria-label="Filter firms">
         <button type="button" class="chip" data-filter="all" aria-pressed="true">All firms</button>
@@ -270,6 +282,7 @@
       </div>
     </section>
   </main>
+  <div id="toast" role="status" hidden></div>
 
   <script>
     let data = { Organizations: [], Contacts: [], Outreach_Log: [], Channels: [], Owners: [], Org_Types: [], Source: {} };
@@ -310,6 +323,37 @@
       if (isApproved(c)) return badge("Approved", "good");
       if (/^no$/i.test(c.Approval)) return badge("Not approved", "bad");
       return badge(c.Approval);
+    }
+
+    // ---------- Owners and relationships ----------
+    function team() {
+      if (data.Owners && data.Owners.length) return data.Owners;
+      return [...new Set([...data.Contacts, ...data.Organizations].map(x => x.Owner).filter(Boolean))].sort();
+    }
+    // A dropdown that changes the Owner cell in the sheet as soon as you pick someone.
+    function assignSelect(kind, key, current, label) {
+      current = current || "";
+      const names = team().includes(current) || !current ? team() : [current, ...team()];
+      if (!data.Source.canWrite) return `<span>${esc(orDash(current))}</span>`;
+      return `<select class="assign${current ? "" : " unassigned"}" data-kind="${kind}" data-assign="${esc(key)}"
+          data-current="${esc(current)}" aria-label="${esc(label)}">
+        <option value="">Unassigned</option>
+        ${names.map(n => `<option${n === current ? " selected" : ""}>${esc(n)}</option>`).join("")}
+      </select>`;
+    }
+    function relationshipsOf(c) { return (data.Relationships || []).filter(r => r.Contact_ID === c.Contact_ID); }
+    function knowsText(c) {
+      const names = [...new Set(relationshipsOf(c).map(r => r.Team_Member))];
+      return names.length ? `Knows them: ${names.join(", ")}` : "";
+    }
+    let toastTimer;
+    function toast(message, isError) {
+      const t = document.getElementById("toast");
+      t.textContent = message;
+      t.className = isError ? "error" : "";
+      t.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 6000 : 2500);
     }
 
     // ---------- Outreach history ----------
@@ -358,6 +402,9 @@
     function firmMatches(o, q) {
       if (document.getElementById("type-filter").value && o.Type !== document.getElementById("type-filter").value) return false;
       const people = contactsOf(o);
+      const who = document.getElementById("owner-filter").value;
+      if (who === "__none__" && o.Owner) return false;
+      if (who && who !== "__none__" && o.Owner !== who && !people.some(c => c.Owner === who)) return false;
       if (firmFilter === "sponsors" && !isSponsor(o)) return false;
       if (firmFilter === "approved" && !people.some(isApproved)) return false;
       if (!q) return true;
@@ -372,7 +419,7 @@
         <span class="avatar org" aria-hidden="true">${esc(initials(o.Org_Name))}</span>
         <span class="item-text">
           <span class="item-title">${esc(o.Org_Name)}</span>
-          <span class="item-sub">${esc(joinSub(o.Type, o.HQ_City, `${people.length} contact${people.length === 1 ? "" : "s"}`))}</span>
+          <span class="item-sub">${esc(joinSub(o.Type, o.HQ_City, `${people.length} contact${people.length === 1 ? "" : "s"}`, o.Owner && "Owner: " + o.Owner))}</span>
         </span>
         <span class="item-badges">
           ${isSponsor(o) ? badge("Sponsor", "good") : badge(o.Sponsor_Status)}
@@ -397,7 +444,7 @@
       const firms = data.Organizations.filter(o => firmMatches(o, q))
         .sort((a, b) => a.Org_Name.localeCompare(b.Org_Name));
       // When searching, also list matching people (including anyone without a firm).
-      const people = q && firmFilter === "all" && !document.getElementById("type-filter").value
+      const people = q && firmFilter === "all" && !document.getElementById("type-filter").value && !document.getElementById("owner-filter").value
         ? data.Contacts.filter(c => `${c.Name} ${c.Title}`.toLowerCase().includes(q)).slice(0, 25)
         : [];
       const list = document.getElementById("results");
@@ -431,8 +478,9 @@
         </div>
         <div class="badges" style="margin:0;grid-column:2">
           ${approvalBadge(c)} ${isAlum(c) ? badge("Stern alum", "brand") : ""} ${badge(c.Status)}
-          ${c.Owner ? `<span class="sub" style="font-size:12px">Owner: ${esc(c.Owner)}</span>` : ""}
         </div>
+        <div class="owner-row" style="grid-column:2;margin-top:4px">Owner ${assignSelect("contact", c.Contact_ID, c.Owner, `Owner of ${c.Name}`)}
+          ${knowsText(c) ? `<span class="knows">· ${esc(knowsText(c))}</span>` : ""}</div>
         <div class="actions">${contactActions(c, org)}</div>
       </li>`;
     }
@@ -486,6 +534,7 @@
         <div class="kind">Firm</div>
         <h2>${esc(o.Org_Name)}</h2>
         <div class="sub">${esc(joinSub(o.Type, o.HQ_City))}${o.Website ? ` · <a class="plain" href="${esc(o.Website)}" target="_blank" rel="noopener noreferrer">website ↗</a>` : ""}</div>
+        <div class="owner-row">Firm owner ${assignSelect("firm", o.Org_Name, o.Owner, `Owner of ${o.Org_Name}`)}</div>
         <div class="answers">
           <div class="answer"><div class="q">Sponsor?</div>${sponsorAnswer(o)}</div>
           <div class="answer"><div class="q">Approved to contact?</div>
@@ -522,6 +571,28 @@
         </form>`;
     }
 
+    function renderRelationships(c) {
+      const rels = relationshipsOf(c);
+      const list = rels.length
+        ? `<ul class="rel-list">${rels.map(r => `<li><strong>${esc(r.Team_Member)}</strong> · ${esc(r.Relationship)}${r.Note ? " · " + esc(r.Note) : ""} <span class="sub" style="font-size:12px">(${esc(r.Date)})</span></li>`).join("")}</ul>`
+        : '<p class="empty">Nobody has said they know this person yet.</p>';
+      const form = !data.Source.canWrite ? "" : `
+        <form id="rel-form" class="log-form">
+          <input type="hidden" name="Contact_ID" value="${esc(c.Contact_ID)}">
+          <div class="row rel">
+            <label>Who knows them<input type="text" name="Team_Member" maxlength="80" list="team-names" required></label>
+            <datalist id="team-names">${team().map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+            <label>How<select name="Relationship" required>${data.Relationship_Types.map(t => `<option>${esc(t)}</option>`).join("")}</select></label>
+            <label>Note (optional)<input type="text" name="Note" maxlength="200" placeholder="e.g. interned there summer 2025"></label>
+          </div>
+          <div class="row-end">
+            <button type="submit" class="btn ghost small">Add relationship</button>
+            <span id="rel-status" class="sub" role="status"></span>
+          </div>
+        </form>`;
+      return `<h3>Who on the board knows them</h3>${list}${form}`;
+    }
+
     function renderContact(c) {
       const org = orgByName(c.Organization);
       const last = historyFor([c.Contact_ID])[0];
@@ -533,9 +604,11 @@
         <div class="badges">${approvalBadge(c)} ${isAlum(c) ? badge("Stern alum", "brand") : ""} ${badge(c.Status)} ${org && isSponsor(org) ? badge("Firm is a sponsor", "good") : ""}</div>
         <div class="badges" style="margin-top:14px">${contactActions(c, org).replace(/<button[^>]*data-key[^>]*>Log outreach<\/button>/, "")}</div>
         <dl>
-          <dt>Owner</dt><dd>${esc(orDash(c.Owner))}</dd>
+          <dt>Owner</dt><dd>${assignSelect("contact", c.Contact_ID, c.Owner, `Owner of ${c.Name}`)}</dd>
+          ${org ? `<dt>Firm owner</dt><dd>${esc(orDash(org.Owner))}</dd>` : ""}
           <dt>Last touch</dt><dd>${esc(touchText(last))}</dd>
         </dl>
+        ${renderRelationships(c)}
         ${renderLogForm(c)}
         ${renderHistory(historyFor([c.Contact_ID]), false)}`;
     }
@@ -577,6 +650,37 @@
     // ---------- Events ----------
     document.getElementById("search").addEventListener("input", renderResults);
     document.getElementById("type-filter").addEventListener("change", renderResults);
+    document.getElementById("owner-filter").addEventListener("change", renderResults);
+
+    // Assigning: picking a name in an Owner dropdown saves it to the sheet right away.
+    document.getElementById("detail").addEventListener("change", async e => {
+      const sel = e.target.closest("select.assign");
+      if (!sel) return;
+      const { kind, assign: key, current } = sel.dataset;
+      const owner = sel.value;
+      sel.disabled = true;
+      try {
+        const res = await fetch("/api/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, key, owner, expected: current }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Could not save");
+        const record = kind === "firm" ? orgByName(key) : data.Contacts.find(c => c.Contact_ID === key);
+        if (record) record.Owner = owner;
+        const panel = document.getElementById("detail");
+        const scroll = panel.scrollTop; // stay put when assigning someone far down the list
+        renderResults();
+        renderDetail();
+        panel.scrollTop = scroll;
+        toast(owner ? `Assigned to ${owner}. Saved to the sheet.` : "Unassigned. Saved to the sheet.");
+      } catch (err) {
+        sel.value = current;
+        sel.disabled = false;
+        toast(err.message, true);
+      }
+    });
     document.querySelector(".chips").addEventListener("click", e => {
       const chip = e.target.closest(".chip");
       if (!chip) return;
@@ -600,6 +704,33 @@
       }
       const btn = e.target.closest("button[data-key]");
       if (btn) select(btn.dataset.key);
+    });
+
+    document.getElementById("detail").addEventListener("submit", async e => {
+      if (e.target.id !== "rel-form") return;
+      e.preventDefault();
+      const form = e.target;
+      const button = form.querySelector("button");
+      const status = document.getElementById("rel-status");
+      button.disabled = true;
+      status.className = "sub";
+      status.textContent = "Saving…";
+      try {
+        const res = await fetch("/api/relationship", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(new FormData(form))),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Could not save");
+        (data.Relationships = data.Relationships || []).push(json);
+        renderDetail();
+        toast("Relationship saved to the sheet.");
+      } catch (err) {
+        status.className = "sub error";
+        status.textContent = err.message;
+        button.disabled = false;
+      }
     });
 
     document.getElementById("detail").addEventListener("submit", async e => {
@@ -649,6 +780,8 @@
         const types = (data.Org_Types && data.Org_Types.length ? data.Org_Types : [...new Set(data.Organizations.map(o => o.Type).filter(Boolean))]);
         document.getElementById("type-filter").insertAdjacentHTML("beforeend",
           types.map(t => `<option>${esc(t)}</option>`).join(""));
+        document.getElementById("owner-filter").insertAdjacentHTML("beforeend",
+          team().map(n => `<option value="${esc(n)}">${esc(n)}'s firms &amp; contacts</option>`).join(""));
         route();
       })
       .catch(err => {

@@ -6,7 +6,7 @@ One job: let a board member find a firm or contact, see the history, and log an 
 - Small changes. Commit after each working step with a clear message.
 - Never commit secrets. Keys, the service-account JSON, and the Google Sheet ID live in .env (listed in .gitignore).
 - Never commit real contact data. Sheet contents (names, emails, phone numbers, alumni rows) stay in the sheet. The repo holds sample data only, in data/sample/.
-- The Google Sheet is the source of truth. The app reads it via a service account and writes only to log tabs (Outreach_Log, Event_Attendance). Core fields are edited in the sheet by design.
+- The Google Sheet is the source of truth. The app reads it via Google sign-in (OAuth) and writes only to log tabs (Outreach_Log, Event_Attendance, Relationships, Assignment_Log) plus one core field: the Owner column on Contacts and Organizations (assigning). Every Owner change is recorded in Assignment_Log. All other core fields are edited in the sheet by design.
 - Read sheet columns by header name, never by position.
 - Plain stack: Node + Express backend, plain HTML/CSS/JS frontend, no framework, no build step, unless I say otherwise.
 - Before saying "done", run the app and tell me exactly how you verified it.

@@ -1,6 +1,6 @@
 const path = require("path");
 const express = require("express");
-const { SheetShapeError } = require("./lib/mapData");
+const { SheetShapeError, ConflictError } = require("./lib/mapData");
 const { createSampleSource } = require("./lib/sources/sample");
 const { createXlsxSource } = require("./lib/sources/xlsx");
 const { createGoogleSource } = require("./lib/sources/google");
@@ -45,12 +45,13 @@ async function needsSignIn() {
 // Turn data-source failures into short, safe messages for the browser.
 function sendSourceError(res, err, fallback) {
   if (err instanceof SheetShapeError) return res.status(500).json({ error: err.message });
+  if (err instanceof ConflictError) return res.status(409).json({ error: err.message });
   const msg = String((err && err.message) || "");
   if (/invalid_grant|No refresh token|invalid_token/i.test(msg) || (err && err.code === 401)) {
     return res.status(401).json({ error: "Google sign-in expired.", signIn: "/auth/google" });
   }
   if (err && err.code === 403) {
-    return res.status(403).json({ error: "This Google account cannot open the sheet. Check it is shared with you." });
+    return res.status(403).json({ error: "This Google account can't open or edit that part of the sheet. Check sharing and protected ranges." });
   }
   console.error(fallback + ":", msg);
   return res.status(500).json({ error: fallback });
@@ -150,6 +151,66 @@ app.post("/api/outreach", (req, res) => {
       res.status(201).json(row);
     } catch (err) {
       sendSourceError(res, err, "Could not save outreach");
+    }
+  });
+});
+
+// Assign a board member (or nobody) as Owner of a contact or firm.
+app.post("/api/assign", (req, res) => {
+  if (!source.canWrite) return res.status(403).json({ error: "Assigning is off while reading the Excel copy." });
+  const body = req.body || {};
+  const kind = body.kind === "firm" ? "firm" : body.kind === "contact" ? "contact" : "";
+  const key = clean(body.key, 200);
+  const owner = clean(body.owner, 80);
+  // What the page showed before the change, so we don't overwrite an edit made in the sheet.
+  const expected = typeof body.expected === "string" ? body.expected.trim() : undefined;
+  if (!kind || !key) return res.status(400).json({ error: "Invalid request" });
+
+  writeQueue = writeQueue.then(async () => {
+    try {
+      if (await needsSignIn()) return res.status(401).json({ error: "Sign in with Google first.", signIn: "/auth/google" });
+      const data = await getData();
+      if (owner && data.Owners.length && !data.Owners.includes(owner)) {
+        return res.status(400).json({ error: "Pick someone from the team list" });
+      }
+      const exists = kind === "firm"
+        ? data.Organizations.some(o => o.Org_Name === key)
+        : data.Contacts.some(c => c.Contact_ID === key);
+      if (!exists) return res.status(400).json({ error: "Unknown record" });
+      const previous = await source.setOwner(kind, key, owner, expected);
+      cache = null;
+      res.json({ kind, key, owner, previous });
+    } catch (err) {
+      sendSourceError(res, err, "Could not save the assignment");
+    }
+  });
+});
+
+// Record that a board member knows a contact. Several people can know the same contact.
+app.post("/api/relationship", (req, res) => {
+  if (!source.canWrite) return res.status(403).json({ error: "Editing is off while reading the Excel copy." });
+  const body = req.body || {};
+  const rel = {
+    Date: new Date().toLocaleDateString("en-CA"),
+    Contact_ID: clean(body.Contact_ID, 20),
+    Team_Member: clean(body.Team_Member, 80),
+    Relationship: clean(body.Relationship, 40),
+    Note: clean(body.Note, 200),
+  };
+  if (!rel.Team_Member) return res.status(400).json({ error: "Who knows them?" });
+
+  writeQueue = writeQueue.then(async () => {
+    try {
+      if (await needsSignIn()) return res.status(401).json({ error: "Sign in with Google first.", signIn: "/auth/google" });
+      const data = await getData();
+      if (!data.Relationship_Types.includes(rel.Relationship)) return res.status(400).json({ error: "Pick a relationship type" });
+      const contact = data.Contacts.find(c => c.Contact_ID === rel.Contact_ID);
+      if (!contact) return res.status(400).json({ error: "Unknown contact" });
+      await source.addRelationship(rel, contact);
+      cache = null;
+      res.status(201).json(rel);
+    } catch (err) {
+      sendSourceError(res, err, "Could not save the relationship");
     }
   });
 });
