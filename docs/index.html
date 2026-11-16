@@ -45,13 +45,18 @@
       border-radius: 6px;
     }
     .shot figcaption { color: #555555; font-size: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; }
+    th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid #e0e0e0; }
+    th { font-weight: 600; }
+    code { font-size: 0.92em; }
   </style>
 </head>
 <body>
   <main>
     <h1>SRECRM</h1>
     <p class="tagline">A sponsorship CRM for the NYU Stern Real Estate Club board.</p>
-    <p class="meta">PRD v1 · November 8, 2026</p>
+    <p class="meta">PRD v2 · November 16, 2026 (v1: November 8)</p>
 
     <h2>Problem</h2>
     <p>SREC's sponsorship team tracks firms, contacts and outreach across a shared Google Sheet, Slack, and people's heads. Nobody can quickly see who owns a firm, when we last talked to someone, or whether a contact is cleared to approach, so outreach gets duplicated or stalls.</p>
@@ -67,9 +72,10 @@
     <ol>
       <li>Open the app and search a firm or contact.</li>
       <li>See its history: owner, approval status, last touch, sponsor tier, past events and panels.</li>
-      <li>Pick a channel and a template; preview the message with merge fields filled in.</li>
-      <li>Send via a mailto link or copy for LinkedIn.</li>
-      <li>The outreach is logged automatically with date, channel and owner.</li>
+      <li>Claim the firm or contact (or assign it to someone on the board) so nobody else reaches out at the same time.</li>
+      <li>Pick a channel and a template; preview the message with merge fields filled in. <em>(Not built yet: Build 3.)</em></li>
+      <li>Send via a mailto link or copy for LinkedIn. <em>(Not built yet: Build 3.)</em></li>
+      <li>Log the outreach with date, channel and owner, either from the detail panel or by checking off an assigned task.</li>
     </ol>
 
     <figure class="shot">
@@ -80,15 +86,30 @@
       <figcaption>Build 1 prototype on localhost, sample data. The second screenshot is continued Build 1 work, another round of iterations: full outreach history and logging an outreach.</figcaption>
     </figure>
 
-    <h2>How it's built</h2>
+    <h2>Riskiest part</h2>
+    <p><strong>#1 risk: getting real, trustworthy sheet data in and out from inside NYU's Google Workspace.</strong> If the app can't read the live sheet, or writes rows that break its formulas or duplicate people, the board goes back to the spreadsheet and Slack and the app is dead.</p>
+    <p><strong>How Build 2 tested it first:</strong> before any new features, I connected to the real sheet (174 firms, 450 contacts) and wrote real rows. That surfaced the problems early: service-account keys are a poor fit for NYU Workspace (so I switched to Google sign-in), the Contact column is a formula filled to row 100 (so writes go into the first empty row instead of appending), there are duplicate contacts (merged on read, plus a dry-run-first <code>npm run dedupe</code>), and 38 contacts have no firm.</p>
+    <p><strong>Next risk:</strong> other board members using it. Today it runs on my laptop with my Google sign-in. Hosting it and giving each person their own nyu.edu sign-in is Build 5, and it is the step that turns this from my tool into the board's tool.</p>
+
+    <h2>How it's built (architecture)</h2>
     <ul>
-      <li><strong>Backend:</strong> Node + Express.</li>
-      <li><strong>Frontend:</strong> plain HTML, CSS and JavaScript.</li>
-      <li><strong>Data:</strong> the existing Google Sheet stays the source of truth. The app signs in with Google (OAuth, an Internal app in an NYU Cloud project) instead of a service account: no long-lived key to protect, NYU's sharing rules don't get in the way, and each board member can later sign in as themselves so access follows the sheet's own sharing. The sign-in token and client file live outside the repo; settings are in <code>.env</code>. Columns are read by header name, only the fields the screen shows leave the server, and the app writes only to <code>Outreach_Log</code>.</li>
+      <li><strong>Backend:</strong> Node + Express (<code>server.js</code>), bound to 127.0.0.1 only.</li>
+      <li><strong>Frontend:</strong> plain HTML, CSS and JavaScript in one page (<code>public/index.html</code>). No framework, no build step.</li>
+      <li><strong>Database:</strong> none of its own. The existing Google Sheet stays the source of truth. The app signs in with Google (OAuth, an Internal app in an NYU Cloud project) instead of a service account: no long-lived key to protect, NYU's sharing rules don't get in the way, and each board member can later sign in as themselves so access follows the sheet's own sharing.</li>
+      <li><strong>What it writes:</strong> only the log tabs (<code>Outreach_Log</code>, <code>Event_Attendance</code>, <code>Relationships</code>, <code>Assignment_Log</code>, <code>Tasks</code>) and the <code>Owner</code> column on Contacts and Organizations. Every owner change is recorded in <code>Assignment_Log</code>. All other fields are edited in the sheet by design.</li>
       <li><strong>Data modes:</strong> <code>DATA_SOURCE</code> switches between sample data (default, for screenshots and tests), a read-only Excel copy (demo fallback) and the live sheet.</li>
-      <li><strong>Access control:</strong> in the app. Google sign-in limited to nyu.edu plus an allowlist (Build 5).</li>
-      <li><strong>Build 1:</strong> runs on localhost with sample data and no login.</li>
+      <li><strong>Models:</strong> Claude Haiku 5.5 through OpenRouter, with web search, writes a short "About this firm" profile. It gets only public firm info (name, type, city, website), never contact data, and each answer is cached so a firm is looked up once.</li>
+      <li><strong>Analytics:</strong> PostHog, with no names, emails or search text sent (see "How I'll know it works").</li>
+      <li><strong>Run it:</strong> <code>npm start</code>, then open <code>http://localhost:3000</code>.</li>
+      <li><strong>Access control:</strong> today, only someone on my laptop can reach it. Build 5: hosted, Google sign-in limited to nyu.edu plus an allowlist.</li>
     </ul>
+    <p><strong>One action, end to end: logging an outreach.</strong></p>
+    <ol>
+      <li>On load, the browser calls <code>GET /api/data</code>. The server reads the sheet's tabs through the Sheets API with my OAuth token, finds columns by header name, merges duplicate contacts, and keeps the result in memory for up to a minute.</li>
+      <li>I search, open a contact, fill in the Log outreach form, and click Save. The browser sends <code>POST /api/outreach</code> with date, channel, owner and summary.</li>
+      <li>The server checks the fields and writes the row into the first empty row of <code>Outreach_Log</code>, leaving the sheet's formulas alone.</li>
+      <li>The server returns the saved row and the history updates on screen. At the same time the browser sends PostHog an <code>outreach_logged</code> event with only the channel and the seconds it took.</li>
+    </ol>
 
     <h2>Out of scope (for now)</h2>
     <ul>
@@ -100,11 +121,34 @@
 
     <h2>How I'll know it works</h2>
     <p>A board member can find a firm and log an outreach in under a minute without asking me.</p>
-    <p>Measured from Build 2 with PostHog:</p>
+    <p>Measured with PostHog, live as of Build 2:</p>
     <ul>
-      <li>Outreach logged per week</li>
-      <li>Distinct weekly users</li>
-      <li>Time from open to logged outreach</li>
+      <li><strong>Outreach logged per week:</strong> count of <code>outreach_logged</code>.</li>
+      <li><strong>Distinct weekly users:</strong> unique browsers sending <code>app_opened</code>.</li>
+      <li><strong>Time to log:</strong> <code>seconds_since_detail_opened</code> on <code>outreach_logged</code>. The target is under 60 seconds.</li>
+    </ul>
+    <p>Also tracked: <code>searched</code> (only the query length and result count), <code>firm_opened</code>, <code>contact_opened</code>, <code>task_created</code>, <code>task_completed</code>, <code>owner_assigned</code> and <code>tab_viewed</code>. Privacy rule: no firm names, contact names, emails or search text go to PostHog. Autocapture and session recording are off, and the part of the URL that holds firm names is stripped from every event.</p>
+
+    <h2>Budget</h2>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Item</th><th>Estimate</th><th>Notes</th></tr>
+      <tr><td>Build budget (coding agent)</td><td>~$15 per build</td><td>Build 2 measured at ~29.5M Claude Code tokens (about 97% cache reads), about $15 at Opus 5.5 API rates. About $20 to date.</td></tr>
+      <tr><td>Unit cost: search or log an outreach</td><td>$0</td><td>The Google Sheets API is free at this volume. Reads are cached for a minute.</td></tr>
+      <tr><td>Unit cost: firm profile</td><td>~$0.02 per firm, once</td><td>Haiku 5.5 tokens cost a fraction of a cent; most of the cost is OpenRouter's web search. Cached, so all 174 firms come to roughly $3–4 in total. Hard cap: $10 credit limit on the key.</td></tr>
+      <tr><td>Analytics</td><td>$0</td><td>PostHog free tier (1M events/month). We'll use a tiny fraction of that.</td></tr>
+      <tr><td>Hosting</td><td>$0 now; ~$0–10/mo later</td><td>Runs on localhost today. Hosting is Build 5.</td></tr>
+      <tr><td>My time</td><td>~5–6 hrs/week</td><td>6 hrs in Build 2.</td></tr>
+    </table>
+    </div>
+
+    <h2>Security and recovery</h2>
+    <ul>
+      <li>&#x2611; <code>.env</code>, keys and credential files are excluded by <code>.gitignore</code>. The OAuth client file and token live outside the repo and outside OneDrive.</li>
+      <li>&#x2611; No real contact data in the repo. Only made-up sample data in <code>data/sample/</code>.</li>
+      <li>&#x2611; Spending limit: the OpenRouter key has a $10 cap. The Sheets API and the PostHog free tier cost nothing.</li>
+      <li>&#x2610; Least privilege, partly done. The app only writes to the log tabs and Owner, and the server only listens on 127.0.0.1. But the Google sign-in asks for the full spreadsheets scope (every sheet my account can open), because Google's narrower scope can't open a sheet that already exists. A per-person sign-in in Build 5 limits each person to what the sheet already shares with them.</li>
+      <li>&#x2611; Recovery: Git is the save point for every working step. Every sheet write is an added row or a logged Owner change, so nothing in the sheet is overwritten without a record, and the sheet keeps its own version history. Changes that could clash are rejected instead of overwriting. A cloud rollback path comes in Build 5.</li>
     </ul>
 
     <h2>Build log</h2>
@@ -130,8 +174,16 @@
       <li><strong>What shipped:</strong> live connection to the real sponsorship sheet (174 firms, 450 contacts). Search and history now run on real data, and logging an outreach writes a row to the sheet's <code>Outreach_Log</code> tab. Channels and owner suggestions come from the sheet's Lists tab. A read-only Excel-copy mode is kept as a demo fallback.</li>
       <li><strong>Decision:</strong> switched from a service account to Google sign-in (OAuth). The sheet is in NYU's Google Workspace, where service-account keys and outside sharing are often blocked; sign-in also sets up per-person access for later.</li>
       <li><strong>What broke:</strong> a three-day-old server was still holding port 3000, so the first test hit old code; the sample data's channel list didn't match the real sheet's; the sheet's Contact column is a formula filled down to row 100, so a plain append would have landed at row 101 (the app now writes into the first empty row and leaves formulas alone); 38 contacts have no organization filled in.</li>
-      <li><strong>Cost:</strong> ~2 hrs, tokens [fill in]. No API or hosting cost (Google Sheets API is free at this volume).</li>
+      <li><strong>Cost:</strong> ~4 hrs across Thursday and Friday, ~26.7M tokens (measured, about 97% cache reads). No API or hosting cost (Google Sheets API is free at this volume).</li>
       <li><strong>Next:</strong> board feedback from today's demo; PostHog events; PRD v2 risks and budget; per-person sign-in so <code>Owner</code> is filled from who is logged in.</li>
+    </ul>
+
+    <h3>November 16, 2026 · Build 2</h3>
+    <ul>
+      <li><strong>What shipped:</strong> PRD v2 (risks, architecture, budget, security) on this page. PostHog analytics are live and confirmed in PostHog's Activity view, with no contact data sent. Also in Build 2 after the live-sheet connection: SREC branding; Home, Dashboard and firm-first Firms &amp; Outreach tabs; owners on firms and contacts, with every change logged in <code>Assignment_Log</code>; an "I'm" picker, one-click "I'll take it" and a team panel; a record of who on the board knows each contact; duplicate contacts merged on read, plus a dry-run-first <code>npm run dedupe</code>; and assignable tasks that log as outreach when checked off.</li>
+      <li><strong>What broke:</strong> PostHog's setup screen said "no events" even though events were arriving. I checked the browser's network traffic, saw PostHog accepting them, and skipped the setup wizard. A search-results count would have counted group headers as results; I caught it before shipping. The earlier token estimates were low: Claude Code's own logs show 2.4M on Nov 8 and 9.7M on Nov 9.</li>
+      <li><strong>Cost:</strong> 6 hrs this build (4 on Thu/Fri, 2 today). ~29.5M tokens for Build 2, measured from Claude Code's logs and about 97% cache reads; that's about $15 at API rates, ~44M tokens and about $20 to date. OpenRouter is capped at $10. $0 for hosting, the Sheets API and PostHog.</li>
+      <li><strong>Next:</strong> show the board, and watch PostHog for real use and time-to-log; message templates with mailto and copy-for-LinkedIn (workflow steps 4–5); fill in the firm for the 38 contacts missing one; plan hosting and per-person nyu.edu sign-in for Build 5.</li>
     </ul>
 
     <footer>
