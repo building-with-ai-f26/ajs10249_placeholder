@@ -86,6 +86,20 @@
       <figcaption>Build 1 prototype on localhost, sample data. The second screenshot is continued Build 1 work, another round of iterations: full outreach history and logging an outreach.</figcaption>
     </figure>
 
+    <figure class="shot">
+      <img src="img/build2-home.jpg" width="1568" height="727" loading="lazy"
+        alt="SRECRM Home tab with SREC branding: headline 'Find a firm, see who we know, reach out in a minute', counts of firms, contacts, approved contacts and current sponsors, and a three-step How it works.">
+      <img src="img/build2-dashboard.jpg" width="1568" height="675" loading="lazy"
+        alt="Dashboard tab: current sponsors, prospects, approved contacts and outreach in the last 30 days, plus a Who's reaching out table of firms, contacts, open tasks and recent outreach per team member.">
+      <img src="img/build2-firm.jpg" width="1568" height="675" loading="lazy"
+        alt="Firms & Outreach tab: firm list with sponsor-status badges on the left; Harborline Capital on the right with firm owner, an I'll take this firm button, sponsor and approval summary, and each contact's owner and actions.">
+      <img src="img/build2-log.jpg" width="1568" height="675" loading="lazy"
+        alt="Contact view for Dana Whitcomb: owner, last touch, who on the board knows them, and the Log outreach form with date, channel, who reached out and summary.">
+      <img src="img/build2-tasks.jpg" width="1568" height="675" loading="lazy"
+        alt="Tasks tab: a New task form, a Follow up with a panel form that creates a task per panelist, and Mine / All open / Done filters.">
+      <figcaption>Build 2 on localhost with made-up sample data. The real version runs on the live sheet, but real contacts never go on this public page. Shown: Home, Dashboard, a firm with its owner and one-click claim, logging an outreach for a contact, and Tasks. The firm's "What they do" profile is blank here because the sample copy runs without an OpenRouter key.</figcaption>
+    </figure>
+
     <h2>Riskiest part</h2>
     <p><strong>#1 risk: getting real, trustworthy sheet data in and out from inside NYU's Google Workspace.</strong> If the app can't read the live sheet, or writes rows that break its formulas or duplicate people, the board goes back to the spreadsheet and Slack and the app is dead.</p>
     <p><strong>How Build 2 tested it first:</strong> before any new features, I connected to the real sheet (174 firms, 450 contacts) and wrote real rows. That surfaced the problems early: service-account keys are a poor fit for NYU Workspace (so I switched to Google sign-in), the Contact column is a formula filled to row 100 (so writes go into the first empty row instead of appending), there are duplicate contacts (merged on read, plus a dry-run-first <code>npm run dedupe</code>), and 38 contacts have no firm.</p>
