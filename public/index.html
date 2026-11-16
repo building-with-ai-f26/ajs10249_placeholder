@@ -371,6 +371,46 @@
     const profileCache = new Map();    // firm name -> web profile (or a pending promise)
     const SOURCE_LABELS = { sample: "Sample data", xlsx: "Excel copy (read-only)", google: "Live Google Sheet" };
 
+    // ---------- Analytics (PostHog) ----------
+    // Off unless POSTHOG_KEY is set in .env. Privacy rule: no firm names, contact names, emails or
+    // search text ever go to PostHog, only event names, counts, channels and timings. Autocapture and
+    // session recording stay off because they would capture whatever is on screen, and the URL hash
+    // (which holds firm names and contact IDs) is stripped from every event.
+    const openedAt = Date.now();
+    let detailOpenedAt = null;
+    function secondsSince(t) { return t ? Math.round((Date.now() - t) / 1000) : null; }
+    // Events fired before /api/config answers wait here; they're sent if analytics turns on, dropped if not.
+    let analytics = "pending";   // "pending" | "on" | "off"
+    const earlyEvents = [];
+    function track(event, props) {
+      if (analytics === "pending") return void earlyEvents.push([event, props || {}]);
+      if (analytics === "on") try { window.posthog.capture(event, props || {}); } catch {}
+    }
+    function stripHash(url) { return typeof url === "string" ? url.split("#")[0] : url; }
+    fetch("/api/config").then(r => r.json()).then(cfg => {
+      if (!cfg.posthogKey) { analytics = "off"; earlyEvents.length = 0; return; }
+      // Official PostHog loader stub: queues calls until the library arrives from PostHog's CDN.
+      !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once unregister identify reset get_distinct_id set_config opt_in_capturing opt_out_capturing".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+      window.posthog.init(cfg.posthogKey, {
+        api_host: cfg.posthogHost,
+        person_profiles: "identified_only",
+        autocapture: false,
+        capture_pageview: false,
+        capture_pageleave: false,
+        disable_session_recording: true,
+        sanitize_properties: props => {
+          for (const k of ["$current_url", "$referrer", "$initial_referrer", "$initial_current_url"]) {
+            if (k in props) props[k] = stripHash(props[k]);
+          }
+          return props;
+        },
+      });
+      window.posthog.register({ app: "srecrm", data_mode: cfg.dataMode });
+      analytics = "on";
+      track("app_opened");
+      for (const [event, props] of earlyEvents.splice(0)) track(event, props);
+    }).catch(() => { analytics = "off"; earlyEvents.length = 0; });
+
     function esc(value) {
       return String(value == null ? "" : value)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -925,6 +965,8 @@
         if (kind === "done") {
           const json = await postJSON("/api/tasks/done", { Task_ID: form.dataset.task, ...fields, Done_By: me });
           toast(json.logged ? "Done, and logged as outreach in the sheet." : "Done.");
+          track("task_completed", { logged_as_outreach: Boolean(json.logged) });
+          if (json.logged) track("outreach_logged", { channel: fields.Channel || "", source: "task", seconds_since_open: secondsSince(openedAt) });
         } else {
           if (form.classList.contains("panel-form")) {
             const panel = data.Panels.find(p => p.Event_Name === fields.Event_Name);
@@ -933,6 +975,7 @@
           }
           const made = await postJSON("/api/tasks", fields);
           toast(made.length === 1 ? `Task added for ${fields.Assigned_To}.` : `${made.length} tasks created for ${fields.Assigned_To}.`);
+          track("task_created", { count: made.length, from_panel: form.classList.contains("panel-form") });
           form.reset();
         }
         await reloadData();
@@ -950,7 +993,16 @@
     function route(keepScroll) {
       const hash = decodeURIComponent(location.hash.slice(1)) || "home";
       let tab = hash;
-      if (/^[oc]:/.test(hash)) { tab = "firms"; selectedKey = hash; }
+      if (/^[oc]:/.test(hash)) {
+        tab = "firms";
+        if (hash !== selectedKey) {
+          detailOpenedAt = Date.now();
+          track(hash.startsWith("o:") ? "firm_opened" : "contact_opened", { seconds_since_open: secondsSince(openedAt) });
+        }
+        selectedKey = hash;
+      }
+      if (!keepScroll && tab !== lastTab) track("tab_viewed", { tab });
+      lastTab = tab;
       if (!VIEWS.includes(tab)) tab = "home";
       renderTaskCount();
       for (const name of VIEWS) {
@@ -966,11 +1018,23 @@
       if (!keepScroll) window.scrollTo(0, 0);
     }
     const VIEWS = ["home", "dashboard", "firms", "tasks"];
+    let lastTab = null;
     function select(key) { location.hash = encodeURIComponent(key); }
     window.addEventListener("hashchange", route);
 
     // ---------- Events ----------
     document.getElementById("search").addEventListener("input", renderResults);
+    // One "searched" event per pause in typing. Only the length is sent, never the text.
+    let searchTimer = null;
+    document.getElementById("search").addEventListener("input", e => {
+      clearTimeout(searchTimer);
+      const q = e.target.value.trim();
+      if (!q) return;
+      searchTimer = setTimeout(() => track("searched", {
+        query_length: q.length,
+        results_count: document.querySelectorAll("#results button").length,
+      }), 1000);
+    });
     document.getElementById("type-filter").addEventListener("change", renderResults);
     document.getElementById("owner-filter").addEventListener("change", renderResults);
     document.getElementById("team-panel").addEventListener("click", e => {
@@ -1007,6 +1071,7 @@
         if (!res.ok) throw new Error(json.error || "Could not save");
         const record = kind === "firm" ? orgByName(key) : data.Contacts.find(c => c.Contact_ID === key);
         if (record) record.Owner = owner;
+        track("owner_assigned", { kind, cleared: !owner, self_claim: Boolean(owner && owner === me) });
         const panel = document.getElementById("detail");
         const scroll = panel.scrollTop; // stay put when assigning someone far down the list
         renderResults();
@@ -1100,6 +1165,12 @@
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Could not save");
         data.Outreach_Log.push(json);
+        track("outreach_logged", {
+          channel: row.Channel || "",
+          source: "detail_panel",
+          seconds_since_open: secondsSince(openedAt),
+          seconds_since_detail_opened: secondsSince(detailOpenedAt),
+        });
         renderDetail();
         const fresh = document.getElementById("log-status");
         if (fresh) fresh.textContent = "Logged to the sheet.";

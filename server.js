@@ -29,6 +29,16 @@ const app = express();
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Analytics settings for the browser. The PostHog project key is a public, write-only key,
+// but it still lives in .env so each deployment chooses its own project (or none).
+app.get("/api/config", (req, res) => {
+  res.json({
+    posthogKey: process.env.POSTHOG_KEY || "",
+    posthogHost: process.env.POSTHOG_HOST || "https://us.i.posthog.com",
+    dataMode: MODE,
+  });
+});
+
 // Real data is held in memory only and refreshed at most once a minute.
 let cache = null;
 async function getData() {
