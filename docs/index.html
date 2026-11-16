@@ -143,6 +143,12 @@
     </ul>
     <p>Also tracked: <code>searched</code> (only the query length and result count), <code>firm_opened</code>, <code>contact_opened</code>, <code>task_created</code>, <code>task_completed</code>, <code>owner_assigned</code> and <code>tab_viewed</code>. Privacy rule: no firm names, contact names, emails or search text go to PostHog. Autocapture and session recording are off, and the part of the URL that holds firm names is stripped from every event.</p>
 
+    <figure class="shot">
+      <img src="img/posthog-activity.png" width="5092" height="2347" loading="lazy"
+        alt="PostHog Activity view listing SRECRM events (app_opened, tab_viewed, searched, firm_opened, contact_opened, owner_assigned, outreach_logged) with anonymous person IDs and the URL http://localhost:3000/ only.">
+      <figcaption>PostHog on November 16, 2026: real events from the live app. People show up as anonymous IDs, and every URL stops at <code>localhost:3000/</code>, with no firm names or contact IDs.</figcaption>
+    </figure>
+
     <h2>Budget</h2>
     <div class="table-wrap">
     <table>
